@@ -2995,16 +2995,16 @@ LOAD F:/STM32CubeIDE/STM32CubeIDE_1.14.1/STM32CubeIDE/plugins/com.st.stm32cube.i
 LOAD F:/STM32CubeIDE/STM32CubeIDE_1.14.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/lib/thumb/v7-m/nofp\libm.a
 LOAD F:/STM32CubeIDE/STM32CubeIDE_1.14.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/thumb/v7-m/nofp\libgcc.a
 
-.debug_info     0x00000000     0x2c5c
- .debug_info    0x00000000      0x777 ./Core/Src/main.o
- .debug_info    0x00000777      0x23b ./Core/Src/stm32f1xx_hal_msp.o
- .debug_info    0x000009b2      0x157 ./Core/Src/stm32f1xx_it.o
- .debug_info    0x00000b09      0x222 ./Core/Src/system_stm32f1xx.o
- .debug_info    0x00000d2b       0x30 ./Core/Startup/startup_stm32f103c8tx.o
- .debug_info    0x00000d5b      0x704 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal.o
- .debug_info    0x0000145f      0xa87 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_cortex.o
- .debug_info    0x00001ee6      0x7d5 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc.o
- .debug_info    0x000026bb      0x5a1 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_gpio.o
+.debug_info     0x00000000     0x2c5d
+ .debug_info    0x00000000      0x778 ./Core/Src/main.o
+ .debug_info    0x00000778      0x23b ./Core/Src/stm32f1xx_hal_msp.o
+ .debug_info    0x000009b3      0x157 ./Core/Src/stm32f1xx_it.o
+ .debug_info    0x00000b0a      0x222 ./Core/Src/system_stm32f1xx.o
+ .debug_info    0x00000d2c       0x30 ./Core/Startup/startup_stm32f103c8tx.o
+ .debug_info    0x00000d5c      0x704 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal.o
+ .debug_info    0x00001460      0xa87 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_cortex.o
+ .debug_info    0x00001ee7      0x7d5 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc.o
+ .debug_info    0x000026bc      0x5a1 ./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_gpio.o
 
 .debug_abbrev   0x00000000      0xf40
  .debug_abbrev  0x00000000      0x298 ./Core/Src/main.o

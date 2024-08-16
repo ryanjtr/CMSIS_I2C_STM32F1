@@ -27,9 +27,9 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   ALLOC
  11 .ARM.attributes 00000029  00000000  00000000  0000300c  2**0
                   CONTENTS, READONLY
- 12 .debug_info   00002c5c  00000000  00000000  00003035  2**0
+ 12 .debug_info   00002c5d  00000000  00000000  00003035  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 13 .debug_abbrev 00000f40  00000000  00000000  00005c91  2**0
+ 13 .debug_abbrev 00000f40  00000000  00000000  00005c92  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  14 .debug_aranges 00000418  00000000  00000000  00006bd8  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
@@ -206,8 +206,8 @@ int main(void)
  80001d0:	4908      	ldr	r1, [pc, #32]	@ (80001f4 <main+0x3c>)
  80001d2:	4809      	ldr	r0, [pc, #36]	@ (80001f8 <main+0x40>)
  80001d4:	f7ff ffba 	bl	800014c <LL_GPIO_SetOutputPin>
-//  for (int i = 0; i < 1000; ++i)
-//    ;
+  //  for (int i = 0; i < 1000; ++i)
+  //    ;
   if (i2c_I2C1_isSlaveAddressExist(0x68 << 1))
  80001d8:	20d0      	movs	r0, #208	@ 0xd0
  80001da:	f000 f8c9 	bl	8000370 <i2c_I2C1_isSlaveAddressExist>
@@ -385,8 +385,10 @@ static void MX_GPIO_Init(void)
  80002c4:	40011000 	.word	0x40011000
 
 080002c8 <i2c_I2C1_GPIO_config>:
-
 /* USER CODE BEGIN 4 */
+/**
+ * The function configures GPIO pins PB6 (SCL) and PB7 (SDA) for I2C communication on I2C1 interface.
+ */
 void i2c_I2C1_GPIO_config(void)
 {
  80002c8:	b480      	push	{r7}
@@ -428,7 +430,10 @@ void i2c_I2C1_GPIO_config(void)
  8000308:	40010c00 	.word	0x40010c00
 
 0800030c <i2c_I2C1_config>:
-
+/**
+ * The function `i2c_I2C1_config` configures the I2C1 peripheral for communication at a speed of
+ * 100KHz.
+ */
 void i2c_I2C1_config(void)
 {
  800030c:	b480      	push	{r7}
@@ -457,7 +462,7 @@ void i2c_I2C1_config(void)
  8000332:	6053      	str	r3, [r2, #4]
   //  Cấu hình TRISE dùng thanh ghi I2C_TRISE
   //  như đã thấy ở phần ví dụ bit 5:0 của thanh ghi I2C_TRISE, ta dùng tần số 8Mhz nên TRISE= 0x09
-  I2C1->TRISE &=~(0xFF);
+  I2C1->TRISE &= ~(0xFF);
  8000334:	4b0d      	ldr	r3, [pc, #52]	@ (800036c <i2c_I2C1_config+0x60>)
  8000336:	6a1b      	ldr	r3, [r3, #32]
  8000338:	4a0c      	ldr	r2, [pc, #48]	@ (800036c <i2c_I2C1_config+0x60>)
@@ -482,8 +487,7 @@ void i2c_I2C1_config(void)
  8000356:	4a05      	ldr	r2, [pc, #20]	@ (800036c <i2c_I2C1_config+0x60>)
  8000358:	f043 0301 	orr.w	r3, r3, #1
  800035c:	6013      	str	r3, [r2, #0]
-//  // Bật bit ACK để nhận ACK mỗi khi nhận được byte dữ liệu hoặc địa chỉ
-//  I2C1->CR1 |= I2C_CR1_ACK;
+
 }
  800035e:	bf00      	nop
  8000360:	46bd      	mov	sp, r7
@@ -494,7 +498,10 @@ void i2c_I2C1_config(void)
  800036c:	40005400 	.word	0x40005400
 
 08000370 <i2c_I2C1_isSlaveAddressExist>:
-
+ *
+ * @return The function `i2c_I2C1_isSlaveAddressExist` returns a boolean value - `true` if the slave
+ * address exists on the I2C bus, and `false` if it does not.
+ */
 bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr)
 {
  8000370:	b480      	push	{r7}
@@ -520,7 +527,7 @@ bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr)
  800038e:	4a25      	ldr	r2, [pc, #148]	@ (8000424 <i2c_I2C1_isSlaveAddressExist+0xb4>)
  8000390:	f443 7380 	orr.w	r3, r3, #256	@ 0x100
  8000394:	6013      	str	r3, [r2, #0]
-  // Ch�? bit start được tạo
+  // Chờ bit start được tạo
   while (!(I2C1->SR1 & I2C_SR1_SB))
  8000396:	e007      	b.n	80003a8 <i2c_I2C1_isSlaveAddressExist+0x38>
   {
@@ -544,14 +551,14 @@ bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr)
   count = 0;
  80003b4:	2300      	movs	r3, #0
  80003b6:	60fb      	str	r3, [r7, #12]
-  // Xóa SB bằng cách đ�?c thanh ghi SR1, sau đó ghi địa chỉ vào thanh ghi DR
+  // Xóa SB bằng cách đọc thanh ghi SR1, sau đó ghi địa chỉ vào thanh ghi DR
   //  Gửi địa chỉ slave ra
   I2C1->DR = Addr;
  80003b8:	4a1a      	ldr	r2, [pc, #104]	@ (8000424 <i2c_I2C1_isSlaveAddressExist+0xb4>)
  80003ba:	79fb      	ldrb	r3, [r7, #7]
  80003bc:	6113      	str	r3, [r2, #16]
   //  LL_I2C_TransmitData8(I2C1, Addr);
-  // Ch�? ACK
+  // Chờ ACK
   while (!(I2C1->SR1 & I2C_SR1_ADDR))
  80003be:	bf00      	nop
  80003c0:	4b18      	ldr	r3, [pc, #96]	@ (8000424 <i2c_I2C1_isSlaveAddressExist+0xb4>)
@@ -575,14 +582,14 @@ bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr)
   count = 0;
  80003dc:	2300      	movs	r3, #0
  80003de:	60fb      	str	r3, [r7, #12]
-  // Tạo đi�?u kiện Stop
+  // Tạo điều kiện Stop
   I2C1->CR1 |= I2C_CR1_STOP;
  80003e0:	4b10      	ldr	r3, [pc, #64]	@ (8000424 <i2c_I2C1_isSlaveAddressExist+0xb4>)
  80003e2:	681b      	ldr	r3, [r3, #0]
  80003e4:	4a0f      	ldr	r2, [pc, #60]	@ (8000424 <i2c_I2C1_isSlaveAddressExist+0xb4>)
  80003e6:	f443 7300 	orr.w	r3, r3, #512	@ 0x200
  80003ea:	6013      	str	r3, [r2, #0]
-  // Xóa c�? Addr bằng cách đ�?c SR1 trước rồi tiếp đến SR2
+  // Xóa cờ Addr bằng cách đọc SR1 trước rồi tiếp đến SR2
   __IO uint32_t tempRd = I2C1->SR1;
  80003ec:	4b0d      	ldr	r3, [pc, #52]	@ (8000424 <i2c_I2C1_isSlaveAddressExist+0xb4>)
  80003ee:	695b      	ldr	r3, [r3, #20]
@@ -593,7 +600,7 @@ bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr)
  80003f6:	60bb      	str	r3, [r7, #8]
   (void)tempRd; // B�? qua biến tempRd
  80003f8:	68bb      	ldr	r3, [r7, #8]
-  // Ch�? I2C vào trạng thái bận
+  // Chờ I2C vào trạng thái bận
   while ((I2C1->SR1 & I2C_SR2_BUSY))
  80003fa:	e007      	b.n	800040c <i2c_I2C1_isSlaveAddressExist+0x9c>
   {

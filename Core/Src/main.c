@@ -182,6 +182,9 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+/**
+ * The function configures GPIO pins PB6 (SCL) and PB7 (SDA) for I2C communication on I2C1 interface.
+ */
 void i2c_I2C1_GPIO_config(void)
 {
   // PB6 (SCL), PB7(SDA)
@@ -194,6 +197,10 @@ void i2c_I2C1_GPIO_config(void)
   GPIOB->CRL |= (GPIO_CRL_CNF6 | GPIO_CRL_CNF7);
 }
 
+/**
+ * The function `i2c_I2C1_config` configures the I2C1 peripheral for communication at a speed of
+ * 100KHz.
+ */
 void i2c_I2C1_config(void)
 {
   // Bật xung clock I2C
@@ -212,10 +219,21 @@ void i2c_I2C1_config(void)
   I2C1->CCR = 0x28;
   // Bật ngoại vi I2C dùng I2C_CR1 bằng cách đặt PE=1
   I2C1->CR1 |= I2C_CR1_PE;
-  //  // Bật bit ACK để nhận ACK mỗi khi nhận được byte dữ liệu hoặc địa chỉ
-  //  I2C1->CR1 |= I2C_CR1_ACK;
+
 }
 
+/**
+ * The function `i2c_I2C1_isSlaveAddressExist` checks if a slave address exists on the I2C1 bus by
+ * sending a start condition, transmitting the address, and checking for acknowledgment before sending
+ * a stop condition.
+ *
+ * @param Addr The function `i2c_I2C1_isSlaveAddressExist` is checking if a slave address exists on the
+ * I2C1 bus. The parameter `Addr` is the 7-bit address of the slave device that you want to check for
+ * existence on the I2C bus. The
+ *
+ * @return The function `i2c_I2C1_isSlaveAddressExist` returns a boolean value - `true` if the slave
+ * address exists on the I2C bus, and `false` if it does not.
+ */
 bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr)
 {
   uint32_t count = 0;
@@ -224,18 +242,18 @@ bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr)
   I2C1->CR1 &= ~(I2C_CR1_POS);
 
   I2C1->CR1 |= I2C_CR1_START;
-  // Ch�? bit start được tạo
+  // Chờ bit start được tạo
   while (!(I2C1->SR1 & I2C_SR1_SB))
   {
     if (++count > 20)
       return false;
   }
   count = 0;
-  // Xóa SB bằng cách đ�?c thanh ghi SR1, sau đó ghi địa chỉ vào thanh ghi DR
+  // Xóa SB bằng cách đọc thanh ghi SR1, sau đó ghi địa chỉ vào thanh ghi DR
   //  Gửi địa chỉ slave ra
   I2C1->DR = Addr;
   //  LL_I2C_TransmitData8(I2C1, Addr);
-  // Ch�? ACK
+  // Chờ ACK
   while (!(I2C1->SR1 & I2C_SR1_ADDR))
     ;
   {
@@ -243,13 +261,13 @@ bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr)
       return false;
   }
   count = 0;
-  // Tạo đi�?u kiện Stop
+  // Tạo điều kiện Stop
   I2C1->CR1 |= I2C_CR1_STOP;
-  // Xóa c�? Addr bằng cách đ�?c SR1 trước rồi tiếp đến SR2
+  // Xóa cờ Addr bằng cách đọc SR1 trước rồi tiếp đến SR2
   __IO uint32_t tempRd = I2C1->SR1;
   tempRd = I2C1->SR2;
   (void)tempRd; // B�? qua biến tempRd
-  // Ch�? I2C vào trạng thái bận
+  // Chờ I2C vào trạng thái bận
   while ((I2C1->SR1 & I2C_SR2_BUSY))
   {
     if (++count > 20)
