@@ -53,7 +53,7 @@ static void MX_GPIO_Init(void);
 void i2c_I2C1_GPIO_config(void);
 void i2c_I2C1_config(void);
 bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr);
-bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t *pData, uint8_t len);
+bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -96,13 +96,19 @@ int main(void)
   //  LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_13);
 
   LL_GPIO_SetOutputPin(GPIOC, LL_GPIO_PIN_13);
-  //  for (int i = 0; i < 1000; ++i)
-  //    ;
-  if (i2c_I2C1_isSlaveAddressExist(0x68 << 1))
+
+  //  if (i2c_I2C1_isSlaveAddressExist(0x68<<1))
+  //  {
+  //    LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_13);
+  //  }
+  //    for (int i = 0; i < 1000; ++i)
+  //      ;
+  uint8_t data[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+  if (i2c_I2C1_masterTransmit(0x68 << 1, 0x03, &data[1]))
   {
     LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_13);
   }
-  //  uint8_t data;
+
   //  i2c_I2C1_masterReceive(117, &data, 1);
   /* USER CODE END 2 */
 
@@ -219,7 +225,6 @@ void i2c_I2C1_config(void)
   I2C1->CCR = 0x28;
   // Bật ngoại vi I2C dùng I2C_CR1 bằng cách đặt PE=1
   I2C1->CR1 |= I2C_CR1_PE;
-
 }
 
 /**
@@ -239,21 +244,21 @@ bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr)
   uint32_t count = 0;
   // Gửi đi�?u kiện Start ra
 
-  I2C1->CR1 &= ~(I2C_CR1_POS);
+  //  I2C1->CR1 &= ~(I2C_CR1_POS);
 
   I2C1->CR1 |= I2C_CR1_START;
-  // Chờ bit start được tạo
+  // Ch�? bit start được tạo
   while (!(I2C1->SR1 & I2C_SR1_SB))
   {
     if (++count > 20)
       return false;
   }
   count = 0;
-  // Xóa SB bằng cách đọc thanh ghi SR1, sau đó ghi địa chỉ vào thanh ghi DR
+  // Xóa SB bằng cách đ�?c thanh ghi SR1, sau đó ghi địa chỉ vào thanh ghi DR
   //  Gửi địa chỉ slave ra
   I2C1->DR = Addr;
   //  LL_I2C_TransmitData8(I2C1, Addr);
-  // Chờ ACK
+  // Ch�? ACK
   while (!(I2C1->SR1 & I2C_SR1_ADDR))
     ;
   {
@@ -261,13 +266,13 @@ bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr)
       return false;
   }
   count = 0;
-  // Tạo điều kiện Stop
+  // Tạo đi�?u kiện Stop
   I2C1->CR1 |= I2C_CR1_STOP;
-  // Xóa cờ Addr bằng cách đọc SR1 trước rồi tiếp đến SR2
+  // Xóa c�? Addr bằng cách đ�?c SR1 trước rồi tiếp đến SR2
   __IO uint32_t tempRd = I2C1->SR1;
   tempRd = I2C1->SR2;
   (void)tempRd; // B�? qua biến tempRd
-  // Chờ I2C vào trạng thái bận
+  // Ch�? I2C vào trạng thái bận
   while ((I2C1->SR1 & I2C_SR2_BUSY))
   {
     if (++count > 20)
@@ -276,60 +281,57 @@ bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr)
   return true;
 }
 
-bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t *pData, uint8_t len)
+bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData)
 {
   uint32_t count = 0;
-  // Chờ I2C vào trạng thái bận
+  // Ch�? I2C vào trạng thái bận
   while ((I2C1->SR1 & I2C_SR2_BUSY))
   {
-    if (++count > 20)
+    if (++count > 100)
       return false;
   }
-  // Tạo điều kiện Start
+  // Tạo đi�?u kiện Start
   I2C1->CR1 &= ~(I2C_CR1_POS);
   I2C1->CR1 |= I2C_CR1_START;
-  // Chờ bit start được tạo
+  // Ch�? bit start được tạo
   while (!(I2C1->SR1 & I2C_SR1_SB))
   {
-    if (++count > 20)
+    if (++count > 100)
       return false;
   }
   count = 0;
   // Gửi địa chỉ slave
   I2C1->DR = Addr;
-  // Chờ ACK
+  // Ch�? ACK
   while (!(I2C1->SR1 & I2C_SR1_ADDR))
   {
-    if (++count > 20)
+    if (++count > 100)
       return false;
   }
   count = 0;
-  // Xóa cờ Addr
+  // Xóa c�? Addr
   __IO uint32_t tempRd = I2C1->SR1;
   tempRd = I2C1->SR2;
   (void)tempRd;
-  // Gửi dữ liệu
-  uint8_t dataIndex = 0;
-  while (dataIndex < len)
+  // Gửi thanh ghi thiết bị cần ghi ra
+  I2C1->DR = reg;
+  // Kiểm tra bộ đệm Tx có trống không
+  while (!(I2C1->SR1 & I2C_SR1_TXE))
   {
-    // Kiểm tra bộ đệm Tx có trống không
-    while (!(I2C1->SR1 & I2C_SR1_TXE))
-    {
-      if (++count > 20)
-        return false;
-    }
-    I2C1->DR = pData[dataIndex];
-    dataIndex++;
-    // Chờ cờ BTF của thanh ghi SR1
-    count = 0;
-    while (!(I2C1->SR1 & I2C_SR1_BTF))
-    {
-      if (++count > 20)
-        return false;
-    }
+    if (++count > 100)
+      return false;
   }
-
-  // Tạo điều kiện dừng
+  count = 0;
+  // Gửi dữ liệu ra
+  I2C1->DR = *pData;
+  // Kiểm tra bộ đệm Tx có trống không
+  while (!(I2C1->SR1 & I2C_SR1_TXE))
+  {
+    if (++count > 100)
+      return false;
+  }
+  count = 0;
+  // Tạo đi�?u kiện dừng
   I2C1->CR1 |= I2C_CR1_STOP;
   return true;
 }
@@ -337,18 +339,18 @@ bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t *pData, uint8_t len)
 {
   uint32_t count = 0;
   uint8_t dataIndex = 0;
-  // Chờ I2C vào trạng thái bận
+  // Ch�? I2C vào trạng thái bận
   while ((I2C1->SR1 & I2C_SR2_BUSY))
   {
     if (++count > 20)
       return false;
   }
   count = 0;
-  // Tạo điều kiện Start
+  // Tạo đi�?u kiện Start
   I2C1->CR1 &= ~(I2C_CR1_POS);
   I2C1->CR1 |= I2C_CR1_ACK;
   I2C1->CR1 |= I2C_CR1_START;
-  // Chờ bit start được tạo
+  // Ch�? bit start được tạo
   while (!(I2C1->SR1 & I2C_SR1_SB))
   {
     if (++count > 20)
@@ -356,8 +358,8 @@ bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t *pData, uint8_t len)
   }
   count = 0;
   // Gửi địa chỉ slave
-  I2C1->DR = Addr | 0x01; // Đọc địa chỉ
-  // Chờ ACK
+  I2C1->DR = Addr | 0x01; // �?�?c địa chỉ
+  // Ch�? ACK
   while (!(I2C1->SR1 & I2C_SR1_ADDR))
   {
     if (++count > 20)
@@ -367,11 +369,11 @@ bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t *pData, uint8_t len)
   // Nhận dữ liệu
   if (len == 0)
   {
-    // Xóa cờ Addr
+    // Xóa c�? Addr
     __IO uint32_t tempRd = I2C1->SR1;
     tempRd = I2C1->SR2;
     (void)tempRd;
-    // Tạo điều kiện dừng
+    // Tạo đi�?u kiện dừng
     I2C1->CR1 |= I2C_CR1_STOP;
     return true;
   }
@@ -380,29 +382,29 @@ bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t *pData, uint8_t len)
     // Xóa bit ACK
     I2C1->CR1 &= ~(I2C_CR1_ACK);
 
-    // Xóa cờ Addr
+    // Xóa c�? Addr
     __IO uint32_t tempRd = I2C1->SR1;
     tempRd = I2C1->SR2;
     (void)tempRd;
-    // Tạo điều kiện dừng
+    // Tạo đi�?u kiện dừng
     I2C1->CR1 |= I2C_CR1_STOP;
   }
   else if (len == 2)
   {
-    // Đặt bit POS=1
+    // �?ặt bit POS=1
     I2C1->CR1 |= (I2C_CR1_POS);
-    // Xóa cờ Addr
+    // Xóa c�? Addr
     __IO uint32_t tempRd = I2C1->SR1;
     tempRd = I2C1->SR2;
     (void)tempRd;
     // Xóa ACK
     I2C1->CR1 &= ~(I2C_CR1_ACK);
-    // Tạo điều kiện dừng
+    // Tạo đi�?u kiện dừng
     I2C1->CR1 |= I2C_CR1_STOP;
   }
   else
   {
-    // Xóa cờ Addr
+    // Xóa c�? Addr
     __IO uint32_t tempRd = I2C1->SR1;
     tempRd = I2C1->SR2;
     (void)tempRd;
@@ -414,7 +416,7 @@ bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t *pData, uint8_t len)
     {
       if (len == 1)
       {
-        // Chờ bộ đệm nhận trống
+        // Ch�? bộ đệm nhận trống
 
         while (!(I2C1->SR1 & I2C_SR1_RXNE))
         {
@@ -427,7 +429,7 @@ bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t *pData, uint8_t len)
       }
       else if (len == 2)
       {
-        // Chờ BTF=1
+        // Ch�? BTF=1
         while (!(I2C1->SR1 & I2C_SR1_BTF))
         {
           if (++count > 20)
@@ -435,7 +437,7 @@ bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t *pData, uint8_t len)
         }
         count = 0;
 
-        // Đọc DR 2 lần
+        // �?�?c DR 2 lần
         pData[dataIndex] = (uint8_t)I2C1->DR;
         dataIndex++;
         pData[dataIndex] = (uint8_t)I2C1->DR;
@@ -443,7 +445,7 @@ bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t *pData, uint8_t len)
       }
       else
       {
-        // Chờ BTF=1
+        // Ch�? BTF=1
         while (!(I2C1->SR1 & I2C_SR1_BTF))
         {
           if (++count > 20)
@@ -452,13 +454,13 @@ bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t *pData, uint8_t len)
         count = 0;
         // Xóa ACK
         I2C1->CR1 &= ~(I2C_CR1_ACK);
-        // Đọc dữ liệu
+        // �?�?c dữ liệu
         pData[dataIndex] = (uint8_t)I2C1->DR;
         dataIndex++;
-        // Đọc thêm
+        // �?�?c thêm
         pData[dataIndex] = (uint8_t)I2C1->DR;
         dataIndex++;
-        // Chờ bộ đệm nhận trống
+        // Ch�? bộ đệm nhận trống
         while (!(I2C1->SR1 & I2C_SR1_RXNE))
         {
           if (++count > 20)
@@ -471,7 +473,7 @@ bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t *pData, uint8_t len)
     }
     else // len>3
     {
-      // Chờ bộ đệm nhận trống
+      // Ch�? bộ đệm nhận trống
 
       while (!(I2C1->SR1 & I2C_SR1_RXNE))
       {
