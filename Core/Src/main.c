@@ -53,7 +53,8 @@ static void MX_GPIO_Init(void);
 void i2c_I2C1_GPIO_config(void);
 void i2c_I2C1_config(void);
 bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr);
-bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData);
+bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData,uint32_t timeout);
+bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t reg, uint8_t *pData,uint32_t timeout);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -103,12 +104,17 @@ int main(void)
   //  }
   //    for (int i = 0; i < 1000; ++i)
   //      ;
+
   uint8_t data[8] = {0, 1, 2, 3, 4, 5, 6, 7};
-  if (i2c_I2C1_masterTransmit(0x68 << 1, 0x03, &data[1]))
+  uint8_t rx_data[1];
+  if (i2c_I2C1_masterTransmit(0x68 << 1, 0x03, &data[1],1000))
   {
     LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_13);
   }
-
+  if (i2c_I2C1_masterReceive(0x68 << 1, 0x03, &rx_data[0],1000))
+  {
+    LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_5);
+  }
   //  i2c_I2C1_masterReceive(117, &data, 1);
   /* USER CODE END 2 */
 
@@ -172,9 +178,13 @@ static void MX_GPIO_Init(void)
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOC);
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOD);
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOA);
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOB);
 
   /**/
   LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_13);
+
+  /**/
+  LL_GPIO_ResetOutputPin(GPIOB, LL_GPIO_PIN_5);
 
   /**/
   GPIO_InitStruct.Pin = LL_GPIO_PIN_13;
@@ -182,6 +192,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
   LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /**/
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_5;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
   /* USER CODE END MX_GPIO_Init_2 */
@@ -281,13 +298,13 @@ bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr)
   return true;
 }
 
-bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData)
+bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData,uint32_t timeout)
 {
   uint32_t count = 0;
   // Ch�? I2C vào trạng thái bận
   while ((I2C1->SR1 & I2C_SR2_BUSY))
   {
-    if (++count > 100)
+    if (++count > timeout)
       return false;
   }
   // Tạo đi�?u kiện Start
@@ -296,7 +313,7 @@ bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData)
   // Ch�? bit start được tạo
   while (!(I2C1->SR1 & I2C_SR1_SB))
   {
-    if (++count > 100)
+    if (++count > timeout)
       return false;
   }
   count = 0;
@@ -305,7 +322,7 @@ bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData)
   // Ch�? ACK
   while (!(I2C1->SR1 & I2C_SR1_ADDR))
   {
-    if (++count > 100)
+    if (++count > timeout)
       return false;
   }
   count = 0;
@@ -318,7 +335,7 @@ bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData)
   // Kiểm tra bộ đệm Tx có trống không
   while (!(I2C1->SR1 & I2C_SR1_TXE))
   {
-    if (++count > 100)
+    if (++count > timeout)
       return false;
   }
   count = 0;
@@ -327,7 +344,7 @@ bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData)
   // Kiểm tra bộ đệm Tx có trống không
   while (!(I2C1->SR1 & I2C_SR1_TXE))
   {
-    if (++count > 100)
+    if (++count > timeout)
       return false;
   }
   count = 0;
@@ -335,7 +352,95 @@ bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData)
   I2C1->CR1 |= I2C_CR1_STOP;
   return true;
 }
-bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t *pData, uint8_t len)
+
+bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t reg, uint8_t *pData,uint32_t timeout)
+{
+  uint32_t count = 0;
+  // Ch�? I2C vào trạng thái bận
+  while ((I2C1->SR1 & I2C_SR2_BUSY))
+  {
+    if (++count > timeout)
+      return false;
+  }
+  count = 0;
+  // Tạo đi�?u kiện Start
+  I2C1->CR1 &= ~(I2C_CR1_POS);
+  I2C1->CR1 |= I2C_CR1_ACK;
+  I2C1->CR1 |= I2C_CR1_START;
+  // Ch�? bit start được tạo
+  while (!(I2C1->SR1 & I2C_SR1_SB))
+  {
+    if (++count > timeout)
+      return false;
+  }
+  count = 0;
+  // Gửi địa chỉ slave
+  I2C1->DR = Addr;
+  // Ch�? ACK
+  while (!(I2C1->SR1 & I2C_SR1_ADDR))
+  {
+    if (++count > timeout)
+      return false;
+  }
+  count = 0;
+  // Xóa c�? Addr
+  __IO uint32_t tempRd = I2C1->SR1;
+  tempRd = I2C1->SR2;
+  (void)tempRd;
+
+  // Gửi thanh ghi cần đ�?c ra
+  I2C1->DR = reg;
+  // Kiểm tra bộ đệm Tx có trống không
+  while (!(I2C1->SR1 & I2C_SR1_TXE))
+  {
+    if (++count > timeout)
+      return false;
+  }
+  count = 0;
+
+  // Tạo đi�?u kiện Start
+  I2C1->CR1 |= I2C_CR1_ACK;
+  I2C1->CR1 |= I2C_CR1_START;
+  // Ch�? bit start được tạo
+  while (!(I2C1->SR1 & I2C_SR1_SB))
+  {
+    if (++count > timeout)
+      return false;
+  }
+  count = 0;
+  // Gửi địa chỉ ra với chế độ đ�?c
+  I2C1->DR = Addr | 0x01;
+  // Ch�? ACK
+  while (!(I2C1->SR1 & I2C_SR1_ADDR))
+  {
+    if (++count > timeout)
+      return false;
+  }
+  count = 0;
+  // Xóa c�? Addr
+  __IO uint32_t tempRd1 = I2C1->SR1;
+  tempRd1 = I2C1->SR2;
+  (void)tempRd1;
+  // Xóa ACK
+  I2C1->CR1 &= ~(I2C_CR1_ACK);
+  // Ch�? bộ đệm nhận trống
+
+  while (!(I2C1->SR1 & I2C_SR1_RXNE))
+  {
+    if (++count > timeout)
+      return false;
+  }
+  count = 0;
+  // Đọc dữ liệu vào biến pData
+  *pData = I2C1->DR;
+  // Tạo đi� ? u kiện dừng
+
+  I2C1->CR1 |= I2C_CR1_STOP;
+
+  return true;
+}
+
+bool i2c_I2C1_masterReceive1(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t len)
 {
   uint32_t count = 0;
   uint8_t dataIndex = 0;
