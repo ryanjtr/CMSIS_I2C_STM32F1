@@ -22,7 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
-
+#include "stm32f1xx_it.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,8 +53,10 @@ static void MX_GPIO_Init(void);
 void i2c_I2C1_GPIO_config(void);
 void i2c_I2C1_config(void);
 bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr);
-bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData,uint32_t timeout);
-bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t reg, uint8_t *pData,uint32_t timeout);
+
+bool i2c_I2C1_masterTransmit_IT(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t len, uint32_t timeout);
+bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t len, uint32_t timeout);
+bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t len, uint32_t timeout);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -94,27 +96,47 @@ int main(void)
   /* USER CODE BEGIN 2 */
   i2c_I2C1_GPIO_config();
   i2c_I2C1_config();
-  //  LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_13);
 
   LL_GPIO_SetOutputPin(GPIOC, LL_GPIO_PIN_13);
 
-  //  if (i2c_I2C1_isSlaveAddressExist(0x68<<1))
+  NVIC_EnableIRQ(I2C1_EV_IRQn); // Kích hoạt ngắt sự kiện I2C1
+  NVIC_EnableIRQ(I2C1_ER_IRQn); // Kích hoạt ngắt lỗi I2C1
+  //  uint8_t data = 5;
+  uint8_t data1[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+  uint8_t rxdata[3] = {6, 7, 8};
+  //  if (i2c_I2C1_masterTransmit(0x68 << 1, 0x03, data1, 7, 1000))
   //  {
-  //    LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_13);
+  //    LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_5);
   //  }
-  //    for (int i = 0; i < 1000; ++i)
-  //      ;
-
-  uint8_t data[8] = {0, 1, 2, 3, 4, 5, 6, 7};
-  uint8_t rx_data[1];
-  if (i2c_I2C1_masterTransmit(0x68 << 1, 0x03, &data[1],1000))
+  //  if (i2c_I2C1_masterReceive(0x68 << 1, 0x03, &rxdata[1], 1000))
+  //  {
+  //    if (data1[2] == rxdata[1])
+  //    {
+  //      LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_13);
+  //    }
+  //  }
+  //  if (i2c_I2C1_masterReceive(0x68 << 1, 0x03, &rxdata[1], 1, 1000))
+  //  {
+  //    if (6 == rxdata[1])
+  //    {
+  //      LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_13);
+  //    }
+  //  }
+  if (i2c_I2C1_masterTransmit_IT(0x68 << 1, 0x03, data1, 8, 1000))
   {
     LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_13);
   }
-  if (i2c_I2C1_masterReceive(0x68 << 1, 0x03, &rx_data[0],1000))
-  {
-    LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_5);
-  }
+  //  i2c_I2C1_masterTransmit_IT(0x68 << 1, 0x03, data, 1000);
+
+  //  uint8_t rx_data[1];
+  //  if (i2c_I2C1_masterTransmit(0x68 << 1, 0x03, &data[1],1000))
+  //  {
+  //    LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_13);
+  //  }
+  //  if (i2c_I2C1_masterReceive(0x68 << 1, 0x03, &rx_data[0],1000))
+  //  {
+  //    LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_5);
+  //  }
   //  i2c_I2C1_masterReceive(117, &data, 1);
   /* USER CODE END 2 */
 
@@ -259,10 +281,10 @@ void i2c_I2C1_config(void)
 bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr)
 {
   uint32_t count = 0;
+
+  // Bit POS được xóa để đảm bảo I2C hoạt động trong chế độ chuẩn (standard mode).
+  I2C1->CR1 &= ~(I2C_CR1_POS);
   // Gửi đi�?u kiện Start ra
-
-  //  I2C1->CR1 &= ~(I2C_CR1_POS);
-
   I2C1->CR1 |= I2C_CR1_START;
   // Ch�? bit start được tạo
   while (!(I2C1->SR1 & I2C_SR1_SB))
@@ -286,9 +308,8 @@ bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr)
   // Tạo đi�?u kiện Stop
   I2C1->CR1 |= I2C_CR1_STOP;
   // Xóa c�? Addr bằng cách đ�?c SR1 trước rồi tiếp đến SR2
-  __IO uint32_t tempRd = I2C1->SR1;
-  tempRd = I2C1->SR2;
-  (void)tempRd; // B�? qua biến tempRd
+  (void)I2C1->SR1;
+  (void)I2C1->SR2;
   // Ch�? I2C vào trạng thái bận
   while ((I2C1->SR1 & I2C_SR2_BUSY))
   {
@@ -298,167 +319,61 @@ bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr)
   return true;
 }
 
-bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData,uint32_t timeout)
+uint8_t Address_slave;
+uint8_t reg_slave;
+uint8_t *tx_data;
+uint8_t tx_len;
+uint8_t tx_index = 0;
+bool i2c_I2C1_masterTransmit_IT(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t len, uint32_t timeout)
 {
   uint32_t count = 0;
   // Ch�? I2C vào trạng thái bận
   while ((I2C1->SR1 & I2C_SR2_BUSY))
   {
-    if (++count > timeout)
+    if (++count > 20)
       return false;
   }
-  // Tạo đi�?u kiện Start
+  count = 0;
+  // Bit POS được xóa để đảm bảo I2C hoạt động trong chế độ chuẩn (standard mode).
   I2C1->CR1 &= ~(I2C_CR1_POS);
+  // Bật ngắt bộ đệm
+  I2C1->CR2 |= I2C_CR2_ITBUFEN;
+  // Bật ngắt sự kiện
+  I2C1->CR2 |= I2C_CR2_ITEVTEN;
+  // Bật ngắt phát hiện lỗi
+  I2C1->CR2 |= I2C_CR2_ITERREN;
+
+  Address_slave = Addr;
+  reg_slave = reg;
+  tx_data = pData;
+  tx_len = len;
+  // Tạo đi�?u kiện Start
   I2C1->CR1 |= I2C_CR1_START;
-  // Ch�? bit start được tạo
-  while (!(I2C1->SR1 & I2C_SR1_SB))
-  {
-    if (++count > timeout)
-      return false;
-  }
-  count = 0;
-  // Gửi địa chỉ slave
-  I2C1->DR = Addr;
-  // Ch�? ACK
-  while (!(I2C1->SR1 & I2C_SR1_ADDR))
-  {
-    if (++count > timeout)
-      return false;
-  }
-  count = 0;
-  // Xóa c�? Addr
-  __IO uint32_t tempRd = I2C1->SR1;
-  tempRd = I2C1->SR2;
-  (void)tempRd;
-  // Gửi thanh ghi thiết bị cần ghi ra
-  I2C1->DR = reg;
-  // Kiểm tra bộ đệm Tx có trống không
-  while (!(I2C1->SR1 & I2C_SR1_TXE))
-  {
-    if (++count > timeout)
-      return false;
-  }
-  count = 0;
-  // Gửi dữ liệu ra
-  I2C1->DR = *pData;
-  // Kiểm tra bộ đệm Tx có trống không
-  while (!(I2C1->SR1 & I2C_SR1_TXE))
-  {
-    if (++count > timeout)
-      return false;
-  }
-  count = 0;
-  // Tạo đi�?u kiện dừng
-  I2C1->CR1 |= I2C_CR1_STOP;
   return true;
 }
 
-bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t reg, uint8_t *pData,uint32_t timeout)
-{
-  uint32_t count = 0;
-  // Ch�? I2C vào trạng thái bận
-  while ((I2C1->SR1 & I2C_SR2_BUSY))
-  {
-    if (++count > timeout)
-      return false;
-  }
-  count = 0;
-  // Tạo đi�?u kiện Start
-  I2C1->CR1 &= ~(I2C_CR1_POS);
-  I2C1->CR1 |= I2C_CR1_ACK;
-  I2C1->CR1 |= I2C_CR1_START;
-  // Ch�? bit start được tạo
-  while (!(I2C1->SR1 & I2C_SR1_SB))
-  {
-    if (++count > timeout)
-      return false;
-  }
-  count = 0;
-  // Gửi địa chỉ slave
-  I2C1->DR = Addr;
-  // Ch�? ACK
-  while (!(I2C1->SR1 & I2C_SR1_ADDR))
-  {
-    if (++count > timeout)
-      return false;
-  }
-  count = 0;
-  // Xóa c�? Addr
-  __IO uint32_t tempRd = I2C1->SR1;
-  tempRd = I2C1->SR2;
-  (void)tempRd;
-
-  // Gửi thanh ghi cần đ�?c ra
-  I2C1->DR = reg;
-  // Kiểm tra bộ đệm Tx có trống không
-  while (!(I2C1->SR1 & I2C_SR1_TXE))
-  {
-    if (++count > timeout)
-      return false;
-  }
-  count = 0;
-
-  // Tạo đi�?u kiện Start
-  I2C1->CR1 |= I2C_CR1_ACK;
-  I2C1->CR1 |= I2C_CR1_START;
-  // Ch�? bit start được tạo
-  while (!(I2C1->SR1 & I2C_SR1_SB))
-  {
-    if (++count > timeout)
-      return false;
-  }
-  count = 0;
-  // Gửi địa chỉ ra với chế độ đ�?c
-  I2C1->DR = Addr | 0x01;
-  // Ch�? ACK
-  while (!(I2C1->SR1 & I2C_SR1_ADDR))
-  {
-    if (++count > timeout)
-      return false;
-  }
-  count = 0;
-  // Xóa c�? Addr
-  __IO uint32_t tempRd1 = I2C1->SR1;
-  tempRd1 = I2C1->SR2;
-  (void)tempRd1;
-  // Xóa ACK
-  I2C1->CR1 &= ~(I2C_CR1_ACK);
-  // Ch�? bộ đệm nhận trống
-
-  while (!(I2C1->SR1 & I2C_SR1_RXNE))
-  {
-    if (++count > timeout)
-      return false;
-  }
-  count = 0;
-  // Đọc dữ liệu vào biến pData
-  *pData = I2C1->DR;
-  // Tạo đi� ? u kiện dừng
-
-  I2C1->CR1 |= I2C_CR1_STOP;
-
-  return true;
-}
-
-bool i2c_I2C1_masterReceive1(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t len)
+bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t len, uint32_t timeout)
 {
   uint32_t count = 0;
   uint8_t dataIndex = 0;
   // Ch�? I2C vào trạng thái bận
   while ((I2C1->SR1 & I2C_SR2_BUSY))
   {
-    if (++count > 20)
+    if (++count > timeout)
       return false;
   }
   count = 0;
-  // Tạo đi�?u kiện Start
+
+  // Bit POS được xóa để đảm bảo I2C hoạt động trong chế độ chuẩn (standard mode).
   I2C1->CR1 &= ~(I2C_CR1_POS);
+  // Trả về ACK sau mỗi lần nhận được địa chỉ đúng và dữ liệu
   I2C1->CR1 |= I2C_CR1_ACK;
+  // Tạo đi�?u kiện Start
   I2C1->CR1 |= I2C_CR1_START;
   // Ch�? bit start được tạo
   while (!(I2C1->SR1 & I2C_SR1_SB))
   {
-    if (++count > 20)
+    if (++count > timeout)
       return false;
   }
   count = 0;
@@ -467,7 +382,7 @@ bool i2c_I2C1_masterReceive1(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t 
   // Ch�? ACK
   while (!(I2C1->SR1 & I2C_SR1_ADDR))
   {
-    if (++count > 20)
+    if (++count > timeout)
       return false;
   }
   count = 0;
@@ -475,9 +390,8 @@ bool i2c_I2C1_masterReceive1(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t 
   if (len == 0)
   {
     // Xóa c�? Addr
-    __IO uint32_t tempRd = I2C1->SR1;
-    tempRd = I2C1->SR2;
-    (void)tempRd;
+    (void)I2C1->SR1;
+    (void)I2C1->SR2;
     // Tạo đi�?u kiện dừng
     I2C1->CR1 |= I2C_CR1_STOP;
     return true;
@@ -496,7 +410,7 @@ bool i2c_I2C1_masterReceive1(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t 
   }
   else if (len == 2)
   {
-    // �?ặt bit POS=1
+    // Bit POS được xóa để đảm bảo I2C hoạt động trong chế độ chuẩn (standard mode).
     I2C1->CR1 |= (I2C_CR1_POS);
     // Xóa c�? Addr
     __IO uint32_t tempRd = I2C1->SR1;
@@ -525,7 +439,7 @@ bool i2c_I2C1_masterReceive1(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t 
 
         while (!(I2C1->SR1 & I2C_SR1_RXNE))
         {
-          if (++count > 20)
+          if (++count > timeout)
             return false;
         }
         count = 0;
@@ -537,7 +451,7 @@ bool i2c_I2C1_masterReceive1(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t 
         // Ch�? BTF=1
         while (!(I2C1->SR1 & I2C_SR1_BTF))
         {
-          if (++count > 20)
+          if (++count > timeout)
             return false;
         }
         count = 0;
@@ -553,7 +467,7 @@ bool i2c_I2C1_masterReceive1(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t 
         // Ch�? BTF=1
         while (!(I2C1->SR1 & I2C_SR1_BTF))
         {
-          if (++count > 20)
+          if (++count > timeout)
             return false;
         }
         count = 0;
@@ -568,7 +482,7 @@ bool i2c_I2C1_masterReceive1(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t 
         // Ch�? bộ đệm nhận trống
         while (!(I2C1->SR1 & I2C_SR1_RXNE))
         {
-          if (++count > 20)
+          if (++count > timeout)
             return false;
         }
         count = 0;
@@ -582,7 +496,7 @@ bool i2c_I2C1_masterReceive1(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t 
 
       while (!(I2C1->SR1 & I2C_SR1_RXNE))
       {
-        if (++count > 20)
+        if (++count > timeout)
           return false;
       }
       count = 0;
@@ -592,6 +506,111 @@ bool i2c_I2C1_masterReceive1(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t 
   }
   return true;
 }
+
+void I2C1_EV_IRQHandler(void)
+{
+
+  // Kiểm tra cờ SB (Start Bit) được set
+  if (I2C1->SR1 & I2C_SR1_SB)
+  {
+    // Gửi địa chỉ thiết bị với bit ghi (0)
+    I2C1->DR = Address_slave;
+  }
+
+  // Kiểm tra cờ ADDR (Address Sent)
+  else if (I2C1->SR1 & I2C_SR1_ADDR)
+  {
+    // Đọc SR1 và SR2 để xóa cờ ADDR
+    (void)I2C1->SR1;
+    (void)I2C1->SR2;
+
+    // Gửi địa chỉ thanh ghi đầu tiên
+    I2C1->DR = reg_slave;
+  }
+
+  // Kiểm tra cờ TXE (Transmit Data Register Empty)
+  else if (I2C1->SR1 & I2C_SR1_TXE)
+  {
+
+    if (tx_index < tx_len)
+    {
+      // Gửi byte dữ liệu tiếp theo
+      I2C1->DR = tx_data[tx_index++];
+    }
+    else
+    {
+      // Tạo điều kiện Stop khi gửi xong
+      I2C1->CR1 |= I2C_CR1_STOP;
+      LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_5);
+      // Tắt các ngắt để tránh kích hoạt ngắt không cần thiết
+      I2C1->CR2 &= ~(I2C_CR2_ITBUFEN | I2C_CR2_ITEVTEN | I2C_CR2_ITERREN);
+    }
+  }
+}
+bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t len, uint32_t timeout)
+{
+  uint32_t count = 0;
+  uint8_t index = 0;
+  // Ch�? I2C vào trạng thái bận
+  while ((I2C1->SR1 & I2C_SR2_BUSY))
+  {
+    if (++count > timeout)
+      return false;
+  }
+
+  // Bit POS được xóa để đảm bảo I2C hoạt động trong chế độ chuẩn (standard mode).
+  I2C1->CR1 &= ~(I2C_CR1_POS);
+  // Tạo đi�?u kiện Start
+  I2C1->CR1 |= I2C_CR1_START;
+  // Ch�? bit start được tạo
+  while (!(I2C1->SR1 & I2C_SR1_SB))
+  {
+    if (++count > timeout)
+      return false;
+  }
+  count = 0;
+  // Gửi địa chỉ slave
+  I2C1->DR = Addr;
+  // Chờ ACK
+  while (!(I2C1->SR1 & I2C_SR1_ADDR))
+  {
+    if (++count > timeout)
+      return false;
+  }
+  count = 0;
+  // Xóa c�? Addr
+  (void)I2C1->SR1;
+  (void)I2C1->SR2;
+  // Gửi thanh ghi thiết bị cần ghi ra
+  I2C1->DR = reg;
+  // Truyền dữ liệu
+  while (len > 0U)
+  {
+    // Kiểm tra bộ đệm Tx có trống không
+    while (!(I2C1->SR1 & I2C_SR1_TXE))
+    {
+      if (++count > timeout)
+        return false;
+    }
+    count = 0;
+    // Gửi dữ liệu ra
+    I2C1->DR = pData[index];
+    len--;
+    index++;
+    // Nếu truyền xong BTF=1 và len != 0 thì truyền tiếp
+    if ((I2C1->SR1 & I2C_SR1_BTF) && (len != 0))
+    {
+      // Gửi dữ liệu ra
+      I2C1->DR = pData[index];
+      len--;
+      index++;
+    }
+  }
+  // Tạo đi�?u kiện dừng
+  I2C1->CR1 |= I2C_CR1_STOP;
+  return true;
+}
+
 /* USER CODE END 4 */
 
 /**

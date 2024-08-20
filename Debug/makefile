@@ -34,34 +34,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := CMSIS_blinkled
+BUILD_ARTIFACT_NAME := testI2C_CMSIS
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-CMSIS_blinkled.elf \
+testI2C_CMSIS.elf \
 
 MAP_FILES += \
-CMSIS_blinkled.map \
+testI2C_CMSIS.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-CMSIS_blinkled.list \
+testI2C_CMSIS.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: CMSIS_blinkled.elf secondary-outputs
+main-build: testI2C_CMSIS.elf secondary-outputs
 
 # Tool invocations
-CMSIS_blinkled.elf CMSIS_blinkled.map: $(OBJS) $(USER_OBJS) F:\STM32project\STM32F401CC\CODE\CMSIS_blinkled\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "CMSIS_blinkled.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"F:\STM32project\STM32F401CC\CODE\CMSIS_blinkled\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="CMSIS_blinkled.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+testI2C_CMSIS.elf testI2C_CMSIS.map: $(OBJS) $(USER_OBJS) F:\STM32project\STM32F401CC\CODE\CMSIS_blinkled\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "testI2C_CMSIS.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"F:\STM32project\STM32F401CC\CODE\CMSIS_blinkled\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="testI2C_CMSIS.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -70,14 +70,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-CMSIS_blinkled.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "CMSIS_blinkled.list"
+testI2C_CMSIS.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "testI2C_CMSIS.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) CMSIS_blinkled.elf CMSIS_blinkled.list CMSIS_blinkled.map default.size.stdout
+	-$(RM) default.size.stdout testI2C_CMSIS.elf testI2C_CMSIS.list testI2C_CMSIS.map
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)

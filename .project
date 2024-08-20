@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>CMSIS_blinkled</name>
+	<name>testI2C_CMSIS</name>
 	<comment></comment>
 	<projects>
 	</projects>
