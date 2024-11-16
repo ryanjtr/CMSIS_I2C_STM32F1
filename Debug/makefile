@@ -52,6 +52,9 @@ default.size.stdout \
 OBJDUMP_LIST += \
 testI2C_CMSIS.list \
 
+OBJCOPY_HEX += \
+testI2C_CMSIS.hex \
+
 
 # All Target
 all: main-build
@@ -60,8 +63,8 @@ all: main-build
 main-build: testI2C_CMSIS.elf secondary-outputs
 
 # Tool invocations
-testI2C_CMSIS.elf testI2C_CMSIS.map: $(OBJS) $(USER_OBJS) F:\STM32project\STM32F401CC\CODE\CMSIS_blinkled\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "testI2C_CMSIS.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"F:\STM32project\STM32F401CC\CODE\CMSIS_blinkled\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="testI2C_CMSIS.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+testI2C_CMSIS.elf testI2C_CMSIS.map: $(OBJS) $(USER_OBJS) F:\STM32project\STM32F401CC\CODE\CMSIS_I2C_STM32F1\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "testI2C_CMSIS.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"F:\STM32project\STM32F401CC\CODE\CMSIS_I2C_STM32F1\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="testI2C_CMSIS.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -75,12 +78,17 @@ testI2C_CMSIS.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
+testI2C_CMSIS.hex: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O ihex $(EXECUTABLES) "testI2C_CMSIS.hex"
+	@echo 'Finished building: $@'
+	@echo ' '
+
 # Other Targets
 clean:
-	-$(RM) default.size.stdout testI2C_CMSIS.elf testI2C_CMSIS.list testI2C_CMSIS.map
+	-$(RM) default.size.stdout testI2C_CMSIS.elf testI2C_CMSIS.hex testI2C_CMSIS.list testI2C_CMSIS.map
 	-@echo ' '
 
-secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
+secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_HEX)
 
 fail-specified-linker-script-missing:
 	@echo 'Error: Cannot find the specified linker script. Check the linker settings in the build configuration.'

@@ -23,6 +23,9 @@
 /* USER CODE BEGIN Includes */
 #include <stdbool.h>
 #include "stm32f1xx_it.h"
+#include "string.h"
+#include "stdarg.h"
+#include "stdio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,6 +52,7 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 void i2c_I2C1_GPIO_config(void);
 void i2c_I2C1_config(void);
@@ -61,13 +65,36 @@ bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t l
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void uart_print(const char *str)
+{
+  uint32_t length = strlen(str);
+  for (uint32_t i = 0; i < length; i++)
+  {
+    // Ch�? cho đến khi bộ truy�?n sẵn sàng
+    while (!LL_USART_IsActiveFlag_TXE(USART1))
+      ;
+    LL_USART_TransmitData8(USART1, (uint8_t)str[i]);
+  }
+  // �?ảm bảo gửi xong byte cuối cùng
+  while (!LL_USART_IsActiveFlag_TC(USART1))
+    ;
+}
 
+void uart_printf(const char *format, ...)
+{
+  char buffer[128]; // Tạo buffer đủ lớn để chứa chuỗi kết quả
+  va_list args;
+  va_start(args, format);
+  vsnprintf(buffer, sizeof(buffer), format, args); // Dùng vsnprintf để format chuỗi
+  va_end(args);
+  uart_print(buffer); // In chuỗi format qua UART
+}
 /* USER CODE END 0 */
 
 /**
- * @brief  The application entry point.
- * @retval int
- */
+  * @brief  The application entry point.
+  * @retval int
+  */
 int main(void)
 {
 
@@ -78,7 +105,18 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_AFIO);
+  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
+
+  /* System interrupt init*/
+  NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
+
+  /* SysTick_IRQn interrupt configuration */
+  NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),15, 0));
+
+  /** NOJTAG: JTAG-DP Disabled and SW-DP Enabled
+  */
+  LL_GPIO_AF_Remap_SWJ_NOJTAG();
 
   /* USER CODE BEGIN Init */
 
@@ -93,17 +131,18 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   i2c_I2C1_GPIO_config();
   i2c_I2C1_config();
 
-  LL_GPIO_SetOutputPin(GPIOC, LL_GPIO_PIN_13);
+  LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_13);
 
   NVIC_EnableIRQ(I2C1_EV_IRQn); // Kích hoạt ngắt sự kiện I2C1
   NVIC_EnableIRQ(I2C1_ER_IRQn); // Kích hoạt ngắt lỗi I2C1
   //  uint8_t data = 5;
-  uint8_t data1[8] = {0, 1, 2, 3, 4, 5, 6, 7};
-  uint8_t rxdata[3] = {6, 7, 8};
+  uint8_t data1[8] = {8, 1, 2, 3, 4, 5, 6, 7};
+//  uint8_t rxdata[3] = {6, 7, 8};
   //  if (i2c_I2C1_masterTransmit(0x68 << 1, 0x03, data1, 7, 1000))
   //  {
   //    LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_5);
@@ -122,10 +161,10 @@ int main(void)
   //      LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_13);
   //    }
   //  }
-  if (i2c_I2C1_masterTransmit_IT(0x68 << 1, 0x03, data1, 8, 1000))
-  {
-    LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_13);
-  }
+//  if (i2c_I2C1_masterTransmit_IT(0x68 << 1, 0x03, data1, 8, 1000))
+//  {
+//    LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_13);
+//  }
   //  i2c_I2C1_masterTransmit_IT(0x68 << 1, 0x03, data, 1000);
 
   //  uint8_t rx_data[1];
@@ -138,6 +177,9 @@ int main(void)
   //    LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_5);
   //  }
   //  i2c_I2C1_masterReceive(117, &data, 1);
+  uart_print("master\r\n");
+//  LL_mDelay(10000);
+  uint8_t count=0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -147,54 +189,122 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+	    if (i2c_I2C1_masterTransmit(0x55 << 1, 0x03, data1, 1, 1000))
+	    {
+	      LL_GPIO_TogglePin(GPIOC, LL_GPIO_PIN_13);
+	      uart_printf("count=%d\r\n",count);
+	      count++;
+	    }
+	    LL_mDelay(5000);
+
   }
   /* USER CODE END 3 */
 }
 
 /**
- * @brief System Clock Configuration
- * @retval None
- */
+  * @brief System Clock Configuration
+  * @retval None
+  */
 void SystemClock_Config(void)
 {
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-
-  /** Initializes the RCC Oscillators according to the specified parameters
-   * in the RCC_OscInitTypeDef structure.
-   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);
+  while(LL_FLASH_GetLatency()!= LL_FLASH_LATENCY_0)
   {
-    Error_Handler();
   }
+  LL_RCC_HSI_SetCalibTrimming(16);
+  LL_RCC_HSI_Enable();
 
-  /** Initializes the CPU, AHB and APB buses clocks
-   */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+   /* Wait till HSI is ready */
+  while(LL_RCC_HSI_IsReady() != 1)
   {
-    Error_Handler();
+
   }
+  LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSI_DIV_2, LL_RCC_PLL_MUL_2);
+  LL_RCC_PLL_Enable();
+
+   /* Wait till PLL is ready */
+  while(LL_RCC_PLL_IsReady() != 1)
+  {
+
+  }
+  LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
+  LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
+  LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);
+  LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_PLL);
+
+   /* Wait till System clock is ready */
+  while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_PLL)
+  {
+
+  }
+  LL_Init1msTick(8000000);
+  LL_SetSystemCoreClock(8000000);
 }
 
 /**
- * @brief GPIO Initialization Function
- * @param None
- * @retval None
- */
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  LL_USART_InitTypeDef USART_InitStruct = {0};
+
+  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /* Peripheral clock enable */
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_USART1);
+
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOA);
+  /**USART1 GPIO Configuration
+  PA9   ------> USART1_TX
+  PA10   ------> USART1_RX
+  */
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_9;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_10;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_FLOATING;
+  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  USART_InitStruct.BaudRate = 115200;
+  USART_InitStruct.DataWidth = LL_USART_DATAWIDTH_8B;
+  USART_InitStruct.StopBits = LL_USART_STOPBITS_1;
+  USART_InitStruct.Parity = LL_USART_PARITY_NONE;
+  USART_InitStruct.TransferDirection = LL_USART_DIRECTION_TX_RX;
+  USART_InitStruct.HardwareFlowControl = LL_USART_HWCONTROL_NONE;
+  USART_InitStruct.OverSampling = LL_USART_OVERSAMPLING_16;
+  LL_USART_Init(USART1, &USART_InitStruct);
+  LL_USART_ConfigAsyncMode(USART1);
+  LL_USART_Enable(USART1);
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
 static void MX_GPIO_Init(void)
 {
   LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
-  /* USER CODE BEGIN MX_GPIO_Init_1 */
-  /* USER CODE END MX_GPIO_Init_1 */
+/* USER CODE BEGIN MX_GPIO_Init_1 */
+/* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOC);
@@ -222,8 +332,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
   LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /* USER CODE BEGIN MX_GPIO_Init_2 */
-  /* USER CODE END MX_GPIO_Init_2 */
+/* USER CODE BEGIN MX_GPIO_Init_2 */
+/* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -260,8 +370,9 @@ void i2c_I2C1_config(void)
   I2C1->TRISE &= ~(0xFF);
   I2C1->TRISE |= 0x09;
   // Cấu hình tốc độ I2C (100KHz SCL) dùng thanh ghi I2C_CCR
-  // ta có f=8Mhz -> T=0.125ns, ta muốn T_high=T_low=5us => CCR=5us/0.125ns=40
-  I2C1->CCR = 0x28;
+  // ta có f=8Mhz -> T=0.125us, ta muốn T_high=T_low=5us => CCR=5us/0.125us=40 <=> 0x28
+  //ta có f=8Mhz -> T=0.125us, ta muốn T_high=T_low=50us => CCR=50us/0.125us=400 <=> 0x190 (10KHz)
+  I2C1->CCR = 0x190;
   // Bật ngoại vi I2C dùng I2C_CR1 bằng cách đặt PE=1
   I2C1->CR1 |= I2C_CR1_PE;
 }
@@ -366,7 +477,7 @@ bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t l
 
   // Bit POS được xóa để đảm bảo I2C hoạt động trong chế độ chuẩn (standard mode).
   I2C1->CR1 &= ~(I2C_CR1_POS);
-  // Trả về ACK sau mỗi lần nhận được địa chỉ đúng và dữ liệu
+  // Trả v�? ACK sau mỗi lần nhận được địa chỉ đúng và dữ liệu
   I2C1->CR1 |= I2C_CR1_ACK;
   // Tạo đi�?u kiện Start
   I2C1->CR1 |= I2C_CR1_START;
@@ -510,17 +621,17 @@ bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t l
 void I2C1_EV_IRQHandler(void)
 {
 
-  // Kiểm tra cờ SB (Start Bit) được set
+  // Kiểm tra c�? SB (Start Bit) được set
   if (I2C1->SR1 & I2C_SR1_SB)
   {
     // Gửi địa chỉ thiết bị với bit ghi (0)
     I2C1->DR = Address_slave;
   }
 
-  // Kiểm tra cờ ADDR (Address Sent)
+  // Kiểm tra c�? ADDR (Address Sent)
   else if (I2C1->SR1 & I2C_SR1_ADDR)
   {
-    // Đọc SR1 và SR2 để xóa cờ ADDR
+    // �?�?c SR1 và SR2 để xóa c�? ADDR
     (void)I2C1->SR1;
     (void)I2C1->SR2;
 
@@ -528,7 +639,7 @@ void I2C1_EV_IRQHandler(void)
     I2C1->DR = reg_slave;
   }
 
-  // Kiểm tra cờ TXE (Transmit Data Register Empty)
+  // Kiểm tra c�? TXE (Transmit Data Register Empty)
   else if (I2C1->SR1 & I2C_SR1_TXE)
   {
 
@@ -539,7 +650,7 @@ void I2C1_EV_IRQHandler(void)
     }
     else
     {
-      // Tạo điều kiện Stop khi gửi xong
+      // Tạo đi�?u kiện Stop khi gửi xong
       I2C1->CR1 |= I2C_CR1_STOP;
       LL_GPIO_SetOutputPin(GPIOB, LL_GPIO_PIN_5);
       // Tắt các ngắt để tránh kích hoạt ngắt không cần thiết
@@ -571,7 +682,7 @@ bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t 
   count = 0;
   // Gửi địa chỉ slave
   I2C1->DR = Addr;
-  // Chờ ACK
+  // Ch�? ACK
   while (!(I2C1->SR1 & I2C_SR1_ADDR))
   {
     if (++count > timeout)
@@ -583,7 +694,7 @@ bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t 
   (void)I2C1->SR2;
   // Gửi thanh ghi thiết bị cần ghi ra
   I2C1->DR = reg;
-  // Truyền dữ liệu
+  // Truy�?n dữ liệu
   while (len > 0U)
   {
     // Kiểm tra bộ đệm Tx có trống không
@@ -597,7 +708,7 @@ bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t 
     I2C1->DR = pData[index];
     len--;
     index++;
-    // Nếu truyền xong BTF=1 và len != 0 thì truyền tiếp
+    // Nếu truy�?n xong BTF=1 và len != 0 thì truy�?n tiếp
     if ((I2C1->SR1 & I2C_SR1_BTF) && (len != 0))
     {
       // Gửi dữ liệu ra
@@ -611,12 +722,13 @@ bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t 
   return true;
 }
 
+
 /* USER CODE END 4 */
 
 /**
- * @brief  This function is executed in case of error occurrence.
- * @retval None
- */
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
@@ -628,14 +740,14 @@ void Error_Handler(void)
   /* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef USE_FULL_ASSERT
+#ifdef  USE_FULL_ASSERT
 /**
- * @brief  Reports the name of the source file and the source line number
- *         where the assert_param error has occurred.
- * @param  file: pointer to the source file name
- * @param  line: assert_param error line source number
- * @retval None
- */
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
