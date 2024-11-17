@@ -59,7 +59,7 @@ void i2c_I2C1_config(void);
 bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr);
 
 bool i2c_I2C1_masterTransmit_IT(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t len, uint32_t timeout);
-bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t len, uint32_t timeout);
+bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t *pData, uint8_t len, uint32_t timeout);
 bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t len, uint32_t timeout);
 /* USER CODE END PFP */
 
@@ -141,7 +141,7 @@ int main(void)
   NVIC_EnableIRQ(I2C1_EV_IRQn); // Kích hoạt ngắt sự kiện I2C1
   NVIC_EnableIRQ(I2C1_ER_IRQn); // Kích hoạt ngắt lỗi I2C1
   //  uint8_t data = 5;
-  uint8_t data1[8] = {8, 1, 2, 3, 4, 5, 6, 7};
+  uint8_t data1[8] = {0x83, 0x31, 0x22, 0x43, 0x94, 0x75, 0x76, 0x97};
 //  uint8_t rxdata[3] = {6, 7, 8};
   //  if (i2c_I2C1_masterTransmit(0x68 << 1, 0x03, data1, 7, 1000))
   //  {
@@ -178,8 +178,8 @@ int main(void)
   //  }
   //  i2c_I2C1_masterReceive(117, &data, 1);
   uart_print("master\r\n");
-//  LL_mDelay(10000);
-  uint8_t count=0;
+  LL_mDelay(10000);
+//  uint8_t count=0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -190,11 +190,10 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	    if (i2c_I2C1_masterTransmit(0x55 << 1, 0x03, data1, 1, 1000))
+	  //send 8 byte, length=9 (still dont know why)
+	    if (i2c_I2C1_masterTransmit(0x55 << 1, data1, 8, 1000))
 	    {
 	      LL_GPIO_TogglePin(GPIOC, LL_GPIO_PIN_13);
-	      uart_printf("count=%d\r\n",count);
-	      count++;
 	    }
 	    LL_mDelay(5000);
 
@@ -658,67 +657,79 @@ void I2C1_EV_IRQHandler(void)
     }
   }
 }
-bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t reg, uint8_t *pData, uint8_t len, uint32_t timeout)
+
+bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t *pData, uint8_t len, uint32_t timeout)
 {
   uint32_t count = 0;
   uint8_t index = 0;
-  // Ch�? I2C vào trạng thái bận
-  while ((I2C1->SR1 & I2C_SR2_BUSY))
+
+  // Chờ I2C vào trạng thái bận
+  while ((I2C1->SR2 & I2C_SR2_BUSY))
   {
     if (++count > timeout)
       return false;
   }
 
-  // Bit POS được xóa để đảm bảo I2C hoạt động trong chế độ chuẩn (standard mode).
+  // Xóa POS và tạo điều kiện Start
   I2C1->CR1 &= ~(I2C_CR1_POS);
-  // Tạo đi�?u kiện Start
   I2C1->CR1 |= I2C_CR1_START;
-  // Ch�? bit start được tạo
+
+  // Chờ bit Start được set
   while (!(I2C1->SR1 & I2C_SR1_SB))
   {
     if (++count > timeout)
       return false;
   }
   count = 0;
-  // Gửi địa chỉ slave
+
+  // Gửi địa chỉ Slave
   I2C1->DR = Addr;
-  // Ch�? ACK
   while (!(I2C1->SR1 & I2C_SR1_ADDR))
   {
     if (++count > timeout)
       return false;
   }
   count = 0;
-  // Xóa c�? Addr
+
+  // Xóa bit ADDR
   (void)I2C1->SR1;
   (void)I2C1->SR2;
-  // Gửi thanh ghi thiết bị cần ghi ra
-  I2C1->DR = reg;
-  // Truy�?n dữ liệu
+
+  // Truyền dữ liệu
   while (len > 0U)
   {
-    // Kiểm tra bộ đệm Tx có trống không
+    // Chờ bộ đệm trống
     while (!(I2C1->SR1 & I2C_SR1_TXE))
     {
       if (++count > timeout)
         return false;
     }
     count = 0;
-    // Gửi dữ liệu ra
+
+    // Gửi dữ liệu
     I2C1->DR = pData[index];
-    len--;
     index++;
-    // Nếu truy�?n xong BTF=1 và len != 0 thì truy�?n tiếp
-    if ((I2C1->SR1 & I2C_SR1_BTF) && (len != 0))
+    len--;
+
+    // Nếu còn dữ liệu và BTF=1, gửi tiếp byte tiếp theo
+    if ((len > 0U) && (I2C1->SR1 & I2C_SR1_BTF))
     {
-      // Gửi dữ liệu ra
       I2C1->DR = pData[index];
-      len--;
       index++;
+      len--;
     }
   }
-  // Tạo đi�?u kiện dừng
+
+  // Chờ byte cuối cùng hoàn tất
+  while (!(I2C1->SR1 & I2C_SR1_BTF))
+  {
+    if (++count > timeout)
+      return false;
+  }
+
+  // Tạo điều kiện STOP
   I2C1->CR1 |= I2C_CR1_STOP;
+
   return true;
 }
 
