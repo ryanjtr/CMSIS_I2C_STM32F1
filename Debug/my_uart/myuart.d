@@ -1,4 +1,5 @@
-Core/Src/stm32f1xx_it.o: ../Core/Src/stm32f1xx_it.c ../Core/Inc/main.h \
+my_uart/myuart.o: ../my_uart/myuart.c ../my_uart/myuart.h \
+ ../Core/Inc/main.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_ll_rcc.h \
  ../Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f1xx.h \
  ../Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f103xb.h \
@@ -17,8 +18,8 @@ Core/Src/stm32f1xx_it.o: ../Core/Src/stm32f1xx_it.c ../Core/Inc/main.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_ll_usart.h \
  ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_ll_gpio.h \
  F:/STM32project/STM32F401CC/CODE/CMSIS_I2C_STM32F1/i2c_cmsis_lib/i2c.h \
- F:/STM32project/STM32F401CC/CODE/CMSIS_I2C_STM32F1/my_uart/myuart.h \
- ../Core/Inc/stm32f1xx_it.h
+ F:/STM32project/STM32F401CC/CODE/CMSIS_I2C_STM32F1/my_uart/myuart.h
+../my_uart/myuart.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_ll_rcc.h:
 ../Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f1xx.h:
@@ -39,4 +40,3 @@ Core/Src/stm32f1xx_it.o: ../Core/Src/stm32f1xx_it.c ../Core/Inc/main.h \
 ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_ll_gpio.h:
 F:/STM32project/STM32F401CC/CODE/CMSIS_I2C_STM32F1/i2c_cmsis_lib/i2c.h:
 F:/STM32project/STM32F401CC/CODE/CMSIS_I2C_STM32F1/my_uart/myuart.h:
-../Core/Inc/stm32f1xx_it.h:

@@ -204,7 +204,11 @@ void SysTick_Handler(void)
 /**
  * @brief This function handles I2C1 error interrupt.
  */
+void I2C1_EV_IRQHandler(void) {
+	receive_handler();
+}
 void I2C1_ER_IRQHandler(void)
 {
+	error_i2c_handler();
 }
 /* USER CODE END 1 */
