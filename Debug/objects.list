@@ -12,4 +12,5 @@
 "./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_usart.o"
 "./Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_ll_utils.o"
 "./i2c_cmsis_lib/i2c.o"
+"./i2c_emulator/i2c_bitbang.o"
 "./my_uart/myuart.o"

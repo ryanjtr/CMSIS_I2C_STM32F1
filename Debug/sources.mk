@@ -27,5 +27,6 @@ Core/Src \
 Core/Startup \
 Drivers/STM32F1xx_HAL_Driver/Src \
 i2c_cmsis_lib \
+i2c_emulator \
 my_uart \
 

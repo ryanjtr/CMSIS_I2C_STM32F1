@@ -113,10 +113,12 @@ int main(void)
   //  NVIC_EnableIRQ(I2C1_EV_IRQn); // Kích hoạt ngắt sự kiện I2C1
   //  NVIC_EnableIRQ(I2C1_ER_IRQn); // Kích hoạt ngắt lỗi I2C1
 
-  int count = 1;
+  int count = 0x10;
   uint8_t data1[255] = {0}; //{0x70, 0x80, 0x81, 0x82, 0x94, 0x95, 0x96, 0x97};
   uint8_t rx_data[256] = {0};
-  data1[0] = 0x40;
+  uint8_t data2[20]={0x10,'H','E','L','L','O',' ','W','O','R','L','D',0x40};
+  uint8_t data3[20]="Hello World @$";
+  data1[0] = 0x10;
   for (int i = 1; i < 256; i++)
     data1[i] = data1[i - 1] + 1;
 
@@ -138,11 +140,13 @@ int main(void)
     //    {
     //    }
 //	DS3231_Read(0x06);
-    if (LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_6))
-    {
-    	DS3231_Read(0x68, rx_data, 1, 10000);
-    	uart_printf("data=0x%02X\r\n",rx_data[0]);
-      if (i2c_I2C1_masterTransmit(0x68, data1, 20, 1000)) // Check i2c_slave receive data without error
+	while(!LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_6));
+	LL_mDelay(3000);
+//    if (LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_6))
+//    {
+////    	DS3231_Read(0x68, rx_data,0x05, 1, 10000);
+////    	uart_printf("data=0x%02X\r\n",rx_data[0]);
+      if (i2c_I2C1_masterTransmit(0x68, data2, 13, 1000)) // Check i2c_slave receive data without error
       {
         LL_GPIO_TogglePin(GPIOC, LL_GPIO_PIN_13);
         uart_printf("trans ok\r\n");
@@ -151,20 +155,23 @@ int main(void)
       {
         uart_printf("trans fail !!!\r\n");
       }
-    }
-    else
-    {
-      uart_printf("count=%d\r\n", count);
-      if (i2c_I2C1_masterReceive(0x55, rx_data, count, 10000)) // Check i2c_slave send data
-      {
-        for (int j = 0; j < count; j++)
-        {
-          uart_printf("rx_data%d=0x%02X\r\n", j, rx_data[j]);
-        }
-        LL_GPIO_TogglePin(GPIOC, LL_GPIO_PIN_13);
-      }
+//    }
+//    if (LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_7))
+//    {
+      LL_mDelay(5000);
+		DS3231_Read(0x68, rx_data,count, 1, 10000);
+		uart_printf("0x%02X=0x%02X\r\n",count,rx_data[0]);
+//      uart_printf("count=%d\r\n", count);
+//      if (i2c_I2C1_masterReceive(0x55, rx_data, count, 10000)) // Check i2c_slave send data
+//      {
+//        for (int j = 0; j < count; j++)
+//        {
+//          uart_printf("rx_data%d=0x%02X\r\n", j, rx_data[j]);
+//        }
+//        LL_GPIO_TogglePin(GPIOC, LL_GPIO_PIN_13);
+//      }
       ++count;
-    }
+//    }
 
     i2c_flag();
 
@@ -345,9 +352,6 @@ static void MX_GPIO_Init(void)
   LL_GPIO_ResetOutputPin(GPIOB, LL_GPIO_PIN_5);
 
   /**/
-  LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_7);
-
-  /**/
   GPIO_InitStruct.Pin = LL_GPIO_PIN_13;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
   GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
@@ -355,14 +359,14 @@ static void MX_GPIO_Init(void)
   LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /**/
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_5|LL_GPIO_PIN_7;
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_5;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
   GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
   LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /**/
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_6|LL_GPIO_PIN_7;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_FLOATING;
   LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 

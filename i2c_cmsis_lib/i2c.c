@@ -65,6 +65,7 @@ bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t *pData, uint8_t len, uint32_t
       return false;
   }
 
+
   // Xóa POS và tạo điều kiện Start
   I2C1->CR1 &= ~(I2C_CR1_POS);
   I2C1->CR1 |= I2C_CR1_START;
@@ -79,6 +80,7 @@ bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t *pData, uint8_t len, uint32_t
 
   // Gửi địa chỉ Slave
   I2C1->DR = Addr << 1;
+
   while (!(I2C1->SR1 & I2C_SR1_ADDR))
   {
     if (++count > timeout)
@@ -131,7 +133,7 @@ bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t *pData, uint8_t len, uint32_t
   return true;
 }
 
-uint8_t DS3231_Read(uint8_t Addr, uint8_t *pData, uint8_t len, uint32_t timeout)
+uint8_t DS3231_Read(uint8_t Addr, uint8_t *pData, uint8_t reg,uint8_t len, uint32_t timeout)
 {
   uint32_t count = 0;
   uint8_t dataIndex = 0;
@@ -182,7 +184,7 @@ uint8_t DS3231_Read(uint8_t Addr, uint8_t *pData, uint8_t len, uint32_t timeout)
   (void)I2C1->SR2;
 
   // register slave
-  I2C1->DR = 0x06; // R/W=1 (read)
+  I2C1->DR = reg;
 
   if (I2C1->SR1 & I2C_SR1_ARLO)
   {
