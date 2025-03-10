@@ -1,5 +1,0 @@
-../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_ll_usart.h:1851:26:LL_USART_IsActiveFlag_TC	1
-../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_ll_usart.h:1862:26:LL_USART_IsActiveFlag_TXE	1
-../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_ll_usart.h:2474:22:LL_USART_TransmitData8	1
-../my_uart/myuart.c:10:13:uart_print	4
-../my_uart/myuart.c:23:6:uart_printf	1

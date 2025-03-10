@@ -65,7 +65,6 @@ bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t *pData, uint8_t len, uint32_t
       return false;
   }
 
-
   // Xóa POS và tạo điều kiện Start
   I2C1->CR1 &= ~(I2C_CR1_POS);
   I2C1->CR1 |= I2C_CR1_START;
@@ -133,8 +132,9 @@ bool i2c_I2C1_masterTransmit(uint8_t Addr, uint8_t *pData, uint8_t len, uint32_t
   return true;
 }
 
-uint8_t DS3231_Read(uint8_t Addr, uint8_t *pData, uint8_t reg,uint8_t len, uint32_t timeout)
+uint8_t DS3231_Read_custom(uint8_t Addr, uint8_t *pData, uint8_t reg, uint8_t len, uint32_t timeout)
 {
+  // uart_printf("1\r\n");
   uint32_t count = 0;
   uint8_t dataIndex = 0;
   uint8_t dataSize = len;
@@ -146,7 +146,7 @@ uint8_t DS3231_Read(uint8_t Addr, uint8_t *pData, uint8_t reg,uint8_t len, uint3
       return false;
   }
   count = 0;
-
+  //  uart_printf("2\r\n");
   // Disable POS
   I2C1->CR1 &= ~(I2C_CR1_POS);
 
@@ -155,6 +155,10 @@ uint8_t DS3231_Read(uint8_t Addr, uint8_t *pData, uint8_t reg,uint8_t len, uint3
 
   // Generate start condition
   I2C1->CR1 |= I2C_CR1_START;
+  //  if(I2C1->SR1 & I2C_SR1_BERR)
+  //  {
+  //	  uart_printf("berr1\r\n");
+  //  }
 
   // Wait until SB flag is set
   while (!(I2C1->SR1 & I2C_SR1_SB))
@@ -163,10 +167,13 @@ uint8_t DS3231_Read(uint8_t Addr, uint8_t *pData, uint8_t reg,uint8_t len, uint3
       return false;
   }
   count = 0;
-
+  //  if(I2C1->SR1 & I2C_SR1_BERR)
+  //  {
+  //	  uart_printf("berr2\r\n");
+  //  }
+  //  uart_printf("3\r\n");
   // Send slave address write
   I2C1->DR = (Addr << 1);
-
 
   // Wait until ADDR flag is set
   while (!(I2C1->SR1 & I2C_SR1_ADDR))
@@ -178,18 +185,23 @@ uint8_t DS3231_Read(uint8_t Addr, uint8_t *pData, uint8_t reg,uint8_t len, uint3
     }
   }
   count = 0;
-
+  //  if(I2C1->SR1 & I2C_SR1_BERR)
+  //  {
+  //	  uart_printf("berr3\r\n");
+  //  }
+  //  uart_printf("4\r\n");
   //	  Clear ADDR flag
   (void)I2C1->SR1;
   (void)I2C1->SR2;
 
-  // register slave
-  I2C1->DR = reg;
-
-  if (I2C1->SR1 & I2C_SR1_ARLO)
-  {
-    uart_printf("arlo 2\r\n");
-  }
+  //  if (I2C1->SR1 & I2C_SR1_ARLO)
+  //  {
+  //    uart_printf("arlo 2\r\n");
+  //  }
+  //  if(I2C1->SR1 & I2C_SR1_BERR)
+  //  {
+  //	  uart_printf("berr4\r\n");
+  //  }
   while (!(I2C1->SR1 & I2C_SR1_TXE))
   {
     if (++count > timeout)
@@ -199,10 +211,18 @@ uint8_t DS3231_Read(uint8_t Addr, uint8_t *pData, uint8_t reg,uint8_t len, uint3
     }
   }
   count = 0;
-  if (I2C1->SR1 & I2C_SR1_ARLO)
-  {
-    uart_printf("arlo 3\r\n");
-  }
+
+  // register slave
+  I2C1->DR = reg;
+  //  uart_printf("5\r\n");
+  //  if(I2C1->SR1 & I2C_SR1_BERR)
+  //  {
+  //	  uart_printf("berr5\r\n");
+  //  }
+  //  if (I2C1->SR1 & I2C_SR1_ARLO)
+  //  {
+  //    uart_printf("arlo 3\r\n");
+  //  }
   // Generate start condition
   I2C1->CR1 |= I2C_CR1_START;
   // Wait until SB flag is set
@@ -212,16 +232,25 @@ uint8_t DS3231_Read(uint8_t Addr, uint8_t *pData, uint8_t reg,uint8_t len, uint3
       return false;
   }
   count = 0;
-  if (I2C1->SR1 & I2C_SR1_ARLO)
-  {
-    uart_printf("arlo 4\r\n");
-  }
+  //  uart_printf("6\r\n");
+  //  if(I2C1->SR1 & I2C_SR1_BERR)
+  //  {
+  //	  uart_printf("berr6\r\n");
+  //  }
+  //  if (I2C1->SR1 & I2C_SR1_ARLO)
+  //  {
+  //    uart_printf("arlo 4\r\n");
+  //  }
   // Send slave address
   I2C1->DR = (Addr << 1) | 1; // R/W=1 (read)
-  if (I2C1->SR1 & I2C_SR1_ARLO)
-  {
-    uart_printf("arlo 5\r\n");
-  }
+                              //  if (I2C1->SR1 & I2C_SR1_ARLO)
+                              //  {
+                              //    uart_printf("arlo 5\r\n");
+                              //  }
+                              //  if(I2C1->SR1 & I2C_SR1_BERR)
+                              //  {
+                              //	  uart_printf("berr7\r\n");
+                              //  }
   // Wait until ADDR flag is set
   while (!(I2C1->SR1 & I2C_SR1_ADDR))
   {
@@ -232,21 +261,32 @@ uint8_t DS3231_Read(uint8_t Addr, uint8_t *pData, uint8_t reg,uint8_t len, uint3
     }
   }
   count = 0;
-  if (I2C1->SR1 & I2C_SR1_ARLO)
-  {
-    uart_printf("arlo 6\r\n");
-  }
+  //  uart_printf("7\r\n");
+  //  if(I2C1->SR1 & I2C_SR1_BERR)
+  //  {
+  //	  uart_printf("berr8\r\n");
+  //  }
+  //  if (I2C1->SR1 & I2C_SR1_ARLO)
+  //  {
+  //    uart_printf("arlo 6\r\n");
+  //  }
   if (dataSize == 1)
   {
 
     // Disable Acknowledge
     I2C1->CR1 &= ~(I2C_CR1_ACK);
     __disable_irq();
-
+    if (I2C1->SR1 & I2C_SR1_BERR)
+    {
+      uart_printf("berr9\r\n");
+    }
     // Clear ADDR flag
     (void)I2C1->SR1;
     (void)I2C1->SR2;
-
+    //    if(I2C1->SR1 & I2C_SR1_BERR)
+    //    {
+    //  	  uart_printf("berr10\r\n");
+    //    }
     // Generate Stop
     I2C1->CR1 |= I2C_CR1_STOP;
 
@@ -258,6 +298,7 @@ uint8_t DS3231_Read(uint8_t Addr, uint8_t *pData, uint8_t reg,uint8_t len, uint3
   {
     if (dataSize <= 3)
     {
+      //    	uart_printf("datasize: %d\r\n",dataSize);
       /* One byte */
       if (dataSize == 1)
       {
@@ -271,7 +312,7 @@ uint8_t DS3231_Read(uint8_t Addr, uint8_t *pData, uint8_t reg,uint8_t len, uint3
           }
         }
         count = 0;
-
+        //        uart_printf("8\r\n");
         // Read data from DR
         pData[dataIndex] = (uint8_t)I2C1->DR;
         dataIndex++;
@@ -279,6 +320,7 @@ uint8_t DS3231_Read(uint8_t Addr, uint8_t *pData, uint8_t reg,uint8_t len, uint3
       }
     }
   }
+  //  uart_printf("last\r\n");
   return true;
 }
 
@@ -353,7 +395,7 @@ bool i2c_I2C1_masterReceive(uint8_t Addr, uint8_t *pData, uint8_t len, uint32_t 
 
   if (I2C1->SR1 & I2C_SR1_BERR)
   {
-    uart_printf("berr 1\r\n");
+    uart_printf("berr1\r\n");
   }
 
   if (dataSize == 0)
@@ -741,6 +783,447 @@ bool i2c_I2C1_isSlaveAddressExist(uint8_t Addr)
   {
     if (++count > 20)
       return false;
+  }
+  return true;
+}
+
+bool Write_eeprom(uint8_t slave_addr, uint8_t mem_addr, uint8_t *pData, uint8_t mem_size, uint8_t len, uint32_t timeout)
+{
+  // mem_size = 8 => 8 bit
+  // mem_size = 16 => 16 bit
+  uint32_t count = 0;
+  uint8_t index = 0;
+
+  // Wait until BUSY flag is reset
+  while ((I2C1->SR2 & I2C_SR2_BUSY))
+  {
+    if (++count > timeout)
+      return false;
+  }
+
+  // Disable Pos
+  I2C1->CR1 &= ~(I2C_CR1_POS);
+
+  // Generate Start
+  I2C1->CR1 |= I2C_CR1_START;
+
+  // Wait until SB flag is set
+  while (!(I2C1->SR1 & I2C_SR1_SB))
+  {
+    if (++count > timeout)
+      return false;
+  }
+  count = 0;
+
+  // Send slave address
+  I2C1->DR = slave_addr << 1;
+
+  // Wait until ADDR flag is set
+  while (!(I2C1->SR1 & I2C_SR1_ADDR))
+  {
+    if (++count > timeout)
+    {
+      uart_printf("ADDR timeout\r\n");
+      return false;
+    }
+  }
+  count = 0;
+
+  // Clear ADDR flag
+  (void)I2C1->SR1;
+  (void)I2C1->SR2;
+
+  // Wait until TXE flag is set
+  while (!(I2C1->SR1 & I2C_SR1_TXE))
+  {
+    if (++count > timeout)
+      return false;
+  }
+  count = 0;
+
+  if (mem_size == 8)
+  {
+    // memory address
+    I2C1->DR = mem_addr & 0xFF; // LSB
+  }
+  else if (mem_size == 16)
+  {
+    // memory address
+    I2C1->DR = (mem_addr & 0xFF00) >> 8; // MSB
+    while (!(I2C1->SR1 & I2C_SR1_TXE))
+    {
+      if (++count > timeout)
+      {
+        uart_printf("error txe\r\n");
+        return false;
+      }
+    }
+    count = 0;
+    // memory address
+    I2C1->DR = mem_addr & 0xFF; // LSB
+  }
+  else
+    return false;
+
+  // Truyền dữ liệu
+  while (len > 0U)
+  {
+    // Chờ bộ đệm trống
+    while (!(I2C1->SR1 & I2C_SR1_TXE))
+    {
+      if (++count > timeout)
+        return false;
+    }
+    count = 0;
+
+    // Gửi dữ liệu
+    I2C1->DR = pData[index];
+    index++;
+    len--;
+
+    // Nếu còn dữ liệu và BTF=1, gửi tiếp byte tiếp theo
+    if ((len > 0U) && (I2C1->SR1 & I2C_SR1_BTF))
+    {
+      I2C1->DR = pData[index];
+      index++;
+      len--;
+    }
+  }
+
+  // Chờ byte cuối cùng hoàn tất
+  while (!(I2C1->SR1 & I2C_SR1_BTF))
+  {
+    if (++count > timeout)
+      return false;
+  }
+
+  // Tạo điều kiện STOP
+  I2C1->CR1 |= I2C_CR1_STOP;
+
+  return true;
+}
+
+bool Read_eeprom(uint8_t slave_addr, uint8_t *pData, uint8_t mem_addr, uint8_t mem_size, uint8_t len, uint32_t timeout)
+{
+  // mem_size = 8 => 8 bit
+  // mem_size = 16 => 16 bit
+  uint32_t count = 0;
+  uint8_t dataIndex = 0;
+  uint8_t dataSize = len;
+
+  // Wait until BUSY flag is reset
+  while ((I2C1->SR1 & I2C_SR2_BUSY))
+  {
+    if (++count > timeout)
+      return false;
+  }
+  count = 0;
+
+  // Disable POS
+  I2C1->CR1 &= ~(I2C_CR1_POS);
+
+  // Enable ACK
+  I2C1->CR1 |= I2C_CR1_ACK;
+
+  // Generate start condition
+  I2C1->CR1 |= I2C_CR1_START;
+
+  // Wait until SB flag is set
+  while (!(I2C1->SR1 & I2C_SR1_SB))
+  {
+    if (++count > timeout)
+      return false;
+  }
+  count = 0;
+
+  // Send slave address write
+  I2C1->DR = (slave_addr << 1);
+
+  // Wait until ADDR flag is set
+  while (!(I2C1->SR1 & I2C_SR1_ADDR))
+  {
+    if (++count > timeout)
+    {
+      uart_printf("ADDR timeout1\r\n");
+      return false;
+    }
+  }
+  count = 0;
+
+  //	  Clear ADDR flag
+  (void)I2C1->SR1;
+  (void)I2C1->SR2;
+
+  while (!(I2C1->SR1 & I2C_SR1_TXE))
+  {
+    if (++count > timeout)
+    {
+      uart_printf("error txe\r\n");
+      return false;
+    }
+  }
+  count = 0;
+
+  if (mem_size == 8)
+  {
+    // memory address
+    I2C1->DR = mem_addr & 0xFF; // LSB
+  }
+  else if (mem_size == 16)
+  {
+    // memory address
+    I2C1->DR = (mem_addr & 0xFF00) >> 8; // MSB
+    while (!(I2C1->SR1 & I2C_SR1_TXE))
+    {
+      if (++count > timeout)
+      {
+        uart_printf("error txe\r\n");
+        return false;
+      }
+    }
+    count = 0;
+    // memory address
+    I2C1->DR = mem_addr & 0xFF; // LSB
+  }
+  else
+    return false;
+
+  while (!(I2C1->SR1 & I2C_SR1_TXE))
+  {
+    if (++count > timeout)
+    {
+      uart_printf("error txe\r\n");
+      return false;
+    }
+  }
+  count = 0;
+
+  // Generate start condition
+  I2C1->CR1 |= I2C_CR1_START;
+
+  // Wait until SB flag is set
+  while (!(I2C1->SR1 & I2C_SR1_SB))
+  {
+    if (++count > timeout)
+      return false;
+  }
+  count = 0;
+
+  // Send slave address with read
+  I2C1->DR = (slave_addr << 1) | 0x01; // R/W=1 (read)
+
+  // Wait until ADDR flag is set
+  while (!(I2C1->SR1 & I2C_SR1_ADDR))
+  {
+    if (++count > timeout)
+    {
+      uart_printf("ADDR timeout\r\n");
+      return false;
+    }
+  }
+  count = 0;
+
+  if (dataSize == 0)
+  {
+    //	  Clear ADDR flag
+    (void)I2C1->SR1;
+    (void)I2C1->SR2;
+
+    // Generate Stop
+    I2C1->CR1 |= I2C_CR1_STOP;
+    return false;
+  }
+  else if (dataSize == 1)
+  {
+
+    // Disable Acknowledge
+    I2C1->CR1 &= ~(I2C_CR1_ACK);
+
+    /* Disable all active IRQs around ADDR clearing and STOP programming because the EV6_3
+    software sequence must complete before the current byte end of transfer */
+    __disable_irq();
+
+    // Clear ADDR flag
+    (void)I2C1->SR1;
+    (void)I2C1->SR2;
+
+    // Generate Stop
+    I2C1->CR1 |= I2C_CR1_STOP;
+
+    /* Re-enable IRQs */
+    __enable_irq();
+  }
+  else if (dataSize == 2)
+  {
+    // Enable Pos
+    I2C1->CR1 |= (I2C_CR1_POS);
+
+    /* Disable all active IRQs around ADDR clearing and STOP programming because the EV6_3
+          software sequence must complete before the current byte end of transfer */
+    __disable_irq();
+
+    // Clear ADDR flag
+    (void)I2C1->SR1;
+    (void)I2C1->SR2;
+
+    // Disable Acknowledge
+    I2C1->CR1 &= ~(I2C_CR1_ACK);
+
+    /* Re-enable IRQs */
+    __enable_irq();
+  }
+  else // len>2
+  {
+    // Enable Acknowledge
+    I2C1->CR1 |= (I2C_CR1_ACK);
+
+    //  Clear ADDR flag
+    (void)I2C1->SR1;
+    (void)I2C1->SR2;
+  }
+
+  while (dataSize > 0)
+  {
+    if (dataSize <= 3)
+    {
+      /* One byte */
+      if (dataSize == 1)
+      {
+        // Wait until RXNE flag is set
+        while (!(I2C1->SR1 & I2C_SR1_RXNE))
+        {
+          if (++count > timeout)
+          {
+            uart_printf("wait rx 1 byte fail\r\n");
+            return false;
+          }
+        }
+        count = 0;
+
+        // Read data from DR
+        pData[dataIndex] = (uint8_t)I2C1->DR;
+        dataIndex++;
+        dataSize--;
+      }
+      /* Two bytes */
+      else if (dataSize == 2)
+      {
+        // Wait until BTF flag is set
+        while (!(I2C1->SR1 & I2C_SR1_BTF))
+        {
+          if (++count > timeout)
+          {
+            uart_printf("btf 2 byte fail\r\n");
+            return false;
+          }
+        }
+        count = 0;
+
+        /* Disable all active IRQs around ADDR clearing and STOP programming because the EV6_3
+           software sequence must complete before the current byte end of transfer */
+        __disable_irq();
+
+        // Generate Stop
+        I2C1->CR1 |= I2C_CR1_STOP;
+
+        // Read data from DR
+        pData[dataIndex] = (uint8_t)I2C1->DR;
+        dataIndex++;
+        dataSize--;
+
+        /* Re-enable IRQs */
+        __enable_irq();
+
+        // Read data from DR
+        pData[dataIndex] = (uint8_t)I2C1->DR;
+        dataIndex++;
+        dataSize--;
+      }
+      /* 3 Last bytes */
+      else
+      {
+        // Wait until BTF flag is set
+        while (!(I2C1->SR1 & I2C_SR1_BTF))
+        {
+          if (++count > timeout)
+          {
+            uart_printf("btf 3 byte fail\r\n");
+            return false;
+          }
+        }
+        count = 0;
+
+        // Disable Acknowledge
+        I2C1->CR1 &= ~(I2C_CR1_ACK);
+
+        /* Disable all active IRQs around ADDR clearing and STOP programming because the EV6_3
+                     software sequence must complete before the current byte end of transfer */
+        __disable_irq();
+
+        // Read data from DR
+        pData[dataIndex] = (uint8_t)I2C1->DR;
+        dataIndex++;
+        dataSize--;
+
+        // Wait until BTF flag is set
+        while (!(I2C1->SR1 & I2C_SR1_BTF))
+        {
+          if (++count > timeout)
+          {
+            uart_printf("btf flag last in 3 byte fail\r\n");
+            return false;
+          }
+        }
+        count = 0;
+
+        // Generate Stop
+        I2C1->CR1 |= I2C_CR1_STOP;
+
+        // Read data from DR
+        pData[dataIndex] = (uint8_t)I2C1->DR;
+        dataIndex++;
+        dataSize--;
+
+        /* Re-enable IRQs */
+        __enable_irq();
+
+        // Read data from DR
+        pData[dataIndex] = (uint8_t)I2C1->DR;
+        dataIndex++;
+        dataSize--;
+      }
+    }
+    else // len>3
+    {
+      // Wait until RXNE flag is set
+      while (!(I2C1->SR1 & I2C_SR1_RXNE))
+      {
+        if (++count > timeout)
+        {
+          uart_printf("rxne fail > 3byte\r\n");
+          return false;
+        }
+      }
+      count = 0;
+
+      // Read data from DR
+      pData[dataIndex] = (uint8_t)I2C1->DR;
+      dataIndex++;
+      dataSize--;
+
+      if (I2C1->SR1 & I2C_SR1_BTF)
+      {
+        if (dataSize == 3)
+        {
+          // Disable Acknowledge
+          I2C1->CR1 &= ~(I2C_CR1_ACK);
+        }
+        // Read data from DR
+        pData[dataIndex] = (uint8_t)I2C1->DR;
+        dataIndex++;
+        dataSize--;
+      }
+    }
   }
   return true;
 }

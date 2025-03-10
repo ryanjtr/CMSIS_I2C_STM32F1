@@ -23,5 +23,9 @@ void receive_handler();
 bool I2C1_masterReceive_IT(uint8_t Addr, uint8_t *pData, uint8_t len, uint32_t timeout);
 void error_i2c_handler();
 bool masterReceive(uint8_t addrs, uint8_t *pData, uint8_t len, uint32_t timeout);
-uint8_t DS3231_Read(uint8_t Addr, uint8_t *pData, uint8_t reg,uint8_t len, uint32_t timeout);
+uint8_t DS3231_Read_custom(uint8_t Addr, uint8_t *pData, uint8_t reg,uint8_t len, uint32_t timeout);
+
+bool I2C_WriteEEPROM(uint8_t slave_addr,uint8_t mem_addr, uint8_t *data, uint8_t length,uint32_t timeout);
+bool Write_eeprom(uint8_t slave_addr, uint8_t mem_addr, uint8_t *pData, uint8_t mem_size, uint8_t len, uint32_t timeout);
+bool Read_eeprom(uint8_t slave_addr, uint8_t *pData, uint8_t mem_addr,uint8_t mem_size,uint8_t len, uint32_t timeout);
 #endif /* I2C_H_ */

@@ -25,6 +25,7 @@
 #include "stm32f1xx_it.h"
 #include "myuart.h"
 #include "i2c.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -113,11 +114,12 @@ int main(void)
   //  NVIC_EnableIRQ(I2C1_EV_IRQn); // Kích hoạt ngắt sự kiện I2C1
   //  NVIC_EnableIRQ(I2C1_ER_IRQn); // Kích hoạt ngắt lỗi I2C1
 
-  int count = 0x10;
+//  int count = 0;
   uint8_t data1[255] = {0}; //{0x70, 0x80, 0x81, 0x82, 0x94, 0x95, 0x96, 0x97};
   uint8_t rx_data[256] = {0};
-  uint8_t data2[20]={0x10,'H','E','L','L','O',' ','W','O','R','L','D',0x40};
-  uint8_t data3[20]="Hello World @$";
+  uint8_t data2[20]={0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x10,0x11,0x12,0x13};
+//  uint8_t data3[20]="Hello World @$";
+//  uint8_t date[2]={0x04,0x06};
   data1[0] = 0x10;
   for (int i = 1; i < 256; i++)
     data1[i] = data1[i - 1] + 1;
@@ -140,42 +142,63 @@ int main(void)
     //    {
     //    }
 //	DS3231_Read(0x06);
-	while(!LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_6));
-	LL_mDelay(3000);
+
+//	while(LL_GPIO_IsInputPinSet(GPIOB, LL_GPIO_PIN_3));//Reset PA3 to trigger
+	LL_mDelay(2000);
 //    if (LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_6))
 //    {
 ////    	DS3231_Read(0x68, rx_data,0x05, 1, 10000);
 ////    	uart_printf("data=0x%02X\r\n",rx_data[0]);
-      if (i2c_I2C1_masterTransmit(0x68, data2, 13, 1000)) // Check i2c_slave receive data without error
+
+
+//      if (i2c_I2C1_masterTransmit(0x50, data2, 13, 1000)) // Check i2c_slave receive data without error
+      if(Write_eeprom(0x50, 0x00, data2, 16, 13, 10000))
       {
-        LL_GPIO_TogglePin(GPIOC, LL_GPIO_PIN_13);
-        uart_printf("trans ok\r\n");
-      }
-      else
-      {
-        uart_printf("trans fail !!!\r\n");
-      }
-//    }
-//    if (LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_7))
-//    {
-      LL_mDelay(5000);
-		DS3231_Read(0x68, rx_data,count, 1, 10000);
-		uart_printf("0x%02X=0x%02X\r\n",count,rx_data[0]);
-//      uart_printf("count=%d\r\n", count);
-//      if (i2c_I2C1_masterReceive(0x55, rx_data, count, 10000)) // Check i2c_slave send data
-//      {
-//        for (int j = 0; j < count; j++)
-//        {
-//          uart_printf("rx_data%d=0x%02X\r\n", j, rx_data[j]);
-//        }
-//        LL_GPIO_TogglePin(GPIOC, LL_GPIO_PIN_13);
-//      }
-      ++count;
+             LL_GPIO_TogglePin(GPIOC, LL_GPIO_PIN_13);
+             uart_printf("trans ok\r\n");
+           }
+           else
+           {
+             uart_printf("trans fail !!!\r\n");
+           }
+           i2c_flag();
+////    }
+////    if (LL_GPIO_IsInputPinSet(GPIOA, LL_GPIO_PIN_7))
+////    {
+//      	  LL_mDelay(3000);
+//		uart_printf("start read ds3231\r\n");
+//		DS3231_Read(0x68, rx_data,0x10, 13, 10000);
+//		uart_printf("pass read ds3231\r\n");
+//		for (int j = 0; j < 13; j++)
+//		{
+//			uart_printf("rx_data%d=0x%02X\r\n", j, rx_data[j]);
+//		}
+//		i2c_flag();
+////		uart_printf("0x%02X=0x%02X\r\n",count,rx_data[0]);
+////      uart_printf("count=%d\r\n", count);
+
+      LL_mDelay(2000);
+	uart_printf("start \r\n");
+//      if (i2c_I2C1_masterReceive(0x50, rx_data, 13, 10000)) // Check i2c_slave send data
+	if(Read_eeprom(0x50, rx_data, 0x00, 16,13, 1000))
+	//    if(I2C_ReadEEPROM(0x50, 0x00, rx_data, 255, 1000))
+	{
+	for (int j = 0; j < 13; j++)
+	{
+	  uart_printf("rx_data%d=0x%02X\r\n", j, rx_data[j]);
+	}
+	LL_GPIO_TogglePin(GPIOC, LL_GPIO_PIN_13);
+	}
+//	DS3231_Read_custom(0x68, rx_data, 0x04, 1, 1000);
+//	uart_printf("rx_data%d=0x%02X\r\n", 0, rx_data[0]);
+      i2c_flag();
+
+
+
+//      ++count;
 //    }
 
-    i2c_flag();
-
-    LL_mDelay(3000);
+//    LL_mDelay(3000);
   }
   /* USER CODE END 3 */
 }
